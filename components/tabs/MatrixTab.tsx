@@ -409,20 +409,28 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                   (3×2) × (2×3) → 3×3
                 </button>
                 <button
+                  onClick={() => handleResizeNonEqual(3, 4, 2)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ${
+                    dimM === 3 && dimK === 4 && dimN === 2 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  (3×4) × (4×2) → 3×2
+                </button>
+                <button
+                  onClick={() => handleResizeNonEqual(2, 3, 4)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ${
+                    dimM === 2 && dimK === 3 && dimN === 4 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  (2×3) × (3×4) → 2×4
+                </button>
+                <button
                   onClick={() => handleResizeNonEqual(3, 3, 1)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ${
                     dimM === 3 && dimK === 3 && dimN === 1 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                   }`}
                 >
-                  (3×3) × (3×1) → 3×1 (Affine)
-                </button>
-                <button
-                  onClick={() => handleResizeNonEqual(4, 2, 2)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ${
-                    dimM === 4 && dimK === 2 && dimN === 2 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  (4×2) × (2×2) → 4×2
+                  (3×3) × (3×1) → 3×1
                 </button>
               </div>
             </div>
