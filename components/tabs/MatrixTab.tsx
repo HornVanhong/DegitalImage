@@ -14,12 +14,14 @@ import {
   ChevronRight, 
   ChevronLeft, 
   BookOpen,
-  Maximize2,
   Sparkles,
   ArrowRight,
   Plus,
   Minus,
-  HelpCircle
+  HelpCircle,
+  RotateCw,
+  Scaling,
+  Lightbulb
 } from 'lucide-react';
 import { Language } from '@/types';
 import { MathRenderer } from '../MathRenderer';
@@ -45,19 +47,21 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
   /* ------------------------------------------------------------------------- */
   /* 1. NON-EQUAL MATRIX MULTIPLICATION STATE (M x K by K x N)                */
   /* ------------------------------------------------------------------------- */
-  const [dimM, setDimM] = useState<number>(2); // Rows of A
-  const [dimK, setDimK] = useState<number>(3); // Cols of A & Rows of B
+  const [dimM, setDimM] = useState<number>(3); // Rows of A
+  const [dimK, setDimK] = useState<number>(4); // Cols of A & Rows of B
   const [dimN, setDimN] = useState<number>(2); // Cols of B
 
   const [nonEqualA, setNonEqualA] = useState<number[][]>([
-    [1, 2, 3],
-    [4, 5, 6]
+    [1, 2, 3, 4],
+    [2, 0, 1, 3],
+    [1, 1, 0, 2]
   ]);
 
   const [nonEqualB, setNonEqualB] = useState<number[][]>([
-    [7, 8],
-    [9, 1],
-    [2, 3]
+    [2, 1],
+    [3, 0],
+    [1, 2],
+    [4, 1]
   ]);
 
   const [activeNonEqualCell, setActiveNonEqualCell] = useState<{ r: number; c: number }>({ r: 0, c: 0 });
@@ -103,16 +107,16 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
           const prod = a * b;
           sum += prod;
           terms.push({ a, b, prod });
-          termStrings.push(`(${a} \\times ${b})`);
+          termStrings.push('(' + a + ' \\times ' + b + ')');
         }
 
         res[r][c] = sum;
-        stepDetails[`${r}-${c}`] = {
+        stepDetails[r + '-' + c] = {
           terms,
           sum,
-          formula: `C_{${r+1}${c+1}} = \\sum_{k=1}^{${dimK}} A_{${r+1}k} \\cdot B_{k${c+1}} = ${termStrings.join(' + ')} = ${terms.map(t => t.prod).join(' + ')} = ${sum}`,
-          explanationKh: `យកជួរដេកទី ${r+1} នៃ Matrix A [${nonEqualA[r]?.join(', ')}] គុណនឹងជួរឈរទី ${c+1} នៃ Matrix B [${nonEqualB.map(row => row[c]).join(', ')}] (Dot Product) ទទួលបានផលបូក = ${sum}។`,
-          explanationEn: `Multiply Row ${r+1} of Matrix A with Column ${c+1} of Matrix B (Dot Product): Sum of all ${dimK} element-wise products = ${sum}.`
+          formula: 'C_{' + (r+1) + (c+1) + '} = \\sum_{k=1}^{' + dimK + '} A_{' + (r+1) + 'k} \\cdot B_{k' + (c+1) + '} = ' + termStrings.join(' + ') + ' = ' + terms.map(t => t.prod).join(' + ') + ' = ' + sum,
+          explanationKh: 'យកជួរដេកទី ' + (r+1) + ' នៃ Matrix A [' + (nonEqualA[r] ? nonEqualA[r].join(', ') : '') + '] គុណនឹងជួរឈរទី ' + (c+1) + ' នៃ Matrix B [' + nonEqualB.map(row => row[c]).join(', ') + '] (Dot Product) ទទួលបានផលបូក = ' + sum + '។',
+          explanationEn: 'Multiply Row ' + (r+1) + ' of Matrix A with Column ' + (c+1) + ' of Matrix B (Dot Product): Sum of all ' + dimK + ' products = ' + sum + '.'
         };
       }
     }
@@ -142,9 +146,9 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
   };
 
   /* ------------------------------------------------------------------------- */
-  /* 2. UNEQUAL MATRICES THEORY INTERACTIVE STATE                              */
+  /* 2. UNEQUAL MATRICES THEORY INTERACTIVE STATE (5 LESSONS)                  */
   /* ------------------------------------------------------------------------- */
-  const [selectedTheoryCase, setSelectedTheoryCase] = useState<'mult' | 'conv' | 'morph' | 'add'>('mult');
+  const [selectedTheoryCase, setSelectedTheoryCase] = useState<'mult' | 'conv' | 'morph' | 'add' | 'trans_scalar'>('mult');
 
   // Case 2: Convolution interactive position
   const [convPos, setConvPos] = useState<{ r: number; c: number }>({ r: 0, c: 0 });
@@ -158,9 +162,8 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
     [1, 1, 1],
     [1, 2, 1],
     [1, 1, 1]
-  ]; // factor 1/10
+  ]; // scale 1/10
   
-  // Calculate value at convPos
   const activeConvWindow = useMemo(() => {
     const win: number[][] = [];
     let sum = 0;
@@ -185,7 +188,6 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
     [0, 1, 1, 1, 0],
     [0, 0, 0, 0, 0]
   ];
-  // 2x2 SE with origin at (0,0)
   const sampleDilationResult = [
     [0, 0, 0, 0, 0],
     [0, 1, 1, 1, 0],
@@ -201,6 +203,29 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
   // Case 4: Zero padding addition step
   const [paddingStep, setPaddingStep] = useState<'unpadded' | 'padded' | 'added'>('padded');
+
+  // Case 5: Transpose & Scalar Scaling State
+  const [sampleScalarK, setSampleScalarK] = useState<number>(2);
+  const [isTransposed, setIsTransposed] = useState<boolean>(false);
+  const sampleBase3x4 = [
+    [1, 2, 3, 4],
+    [5, 6, 7, 8],
+    [9, 10, 11, 12]
+  ];
+
+  const transposed3x4 = useMemo(() => {
+    const rows = sampleBase3x4.length;
+    const cols = sampleBase3x4[0].length;
+    const res: number[][] = [];
+    for (let c = 0; c < cols; c++) {
+      const newRow: number[] = [];
+      for (let r = 0; r < rows; r++) {
+        newRow.push(sampleBase3x4[r][c]);
+      }
+      res.push(newRow);
+    }
+    return res;
+  }, []);
 
   /* ------------------------------------------------------------------------- */
   /* 3. SPATIAL KERNELS CATALOG DATA                                           */
@@ -278,7 +303,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
   const m11 = (affineScaleY * cosA).toFixed(3);
   const m12 = affineTy.toFixed(1);
 
-  const activeKey = `${activeNonEqualCell.r}-${activeNonEqualCell.c}`;
+  const activeKey = activeNonEqualCell.r + '-' + activeNonEqualCell.c;
   const activeNonEqualInfo = nonEqualResult.stepDetails[activeKey];
 
   return (
@@ -291,9 +316,9 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
         <h2 className="text-2xl md:text-3xl font-extrabold text-white">
           {isKh ? 'មជ្ឈមណ្ឌលប្រមាណវិធី និងមេរៀន Matrix គ្រប់ប្រភេទ (Step-by-Step)' : 'Matrix Masterclass & Visual Step-by-Step Solver'}
         </h2>
-        <p className={`text-xs md:text-sm text-slate-300 leading-relaxed ${isKh ? 'khmer-font' : ''}`}>
+        <p className={'text-xs md:text-sm text-slate-300 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
           {isKh
-            ? 'សិក្សា និងអនុវត្តការគណនា Matrix មិនស្មើគ្នា (M×K គុណ K×N), Convolution លើរូបភាពទំហំធំជាមួយ Kernel តូច, Morphology លើទំហំមិនស៊ីមេទ្រី ព្រមទាំងរូបមន្តលម្អិត KaTeX ងាយយល់ និងងាយមើលបំផុត។'
+            ? 'សិក្សា និងអនុវត្តការគណនា Matrix គ្រប់ទម្រង់៖ Matrix មិនស្មើគ្នា (M×K គុណ K×N), 2D Convolution, Morphology SE មិនស៊ីមេទ្រី, Zero-Padding, Transpose និង Scalar Scaling មួយជំហានៗយ៉ាងក្បោះក្បាយ។'
             : 'Interactive step-by-step solver for non-equal dimension matrix multiplication, spatial convolution boundary reductions, asymmetric morphology, and affine transformations.'}
         </p>
       </div>
@@ -302,11 +327,11 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3 text-xs font-bold">
         <button
           onClick={() => setActiveCategory('non_equal_calc')}
-          className={`px-4 py-2.5 rounded-xl transition flex items-center gap-2 ${
+          className={'px-4 py-2.5 rounded-xl transition flex items-center gap-2 ' + (
             activeCategory === 'non_equal_calc'
               ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-500/25 border border-indigo-400/40'
               : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-          }`}
+          )}
         >
           <Calculator className="w-4 h-4 text-amber-400" />
           <span>{isKh ? '១. កម្មវិធីគណនា Matrix មិនស្មើគ្នា' : '1. Non-Equal Matrix Multiplier'}</span>
@@ -314,23 +339,23 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
         <button
           onClick={() => setActiveCategory('unequal_theory')}
-          className={`px-4 py-2.5 rounded-xl transition flex items-center gap-2 ${
+          className={'px-4 py-2.5 rounded-xl transition flex items-center gap-2 ' + (
             activeCategory === 'unequal_theory'
               ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-500/25 border border-indigo-400/40'
               : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-          }`}
+          )}
         >
           <BookOpen className="w-4 h-4 text-cyan-400" />
-          <span>{isKh ? '២. មេរៀន Matrix មិនស្មើគ្នា (ងាយមើល)' : '2. Unequal Matrices Guide'}</span>
+          <span>{isKh ? '២. មេរៀន Matrix គ្រប់ប្រភេទ (Step-by-Step)' : '2. All Matrix Lessons'}</span>
         </button>
 
         <button
           onClick={() => setActiveCategory('spatial_kernels')}
-          className={`px-4 py-2.5 rounded-xl transition flex items-center gap-2 ${
+          className={'px-4 py-2.5 rounded-xl transition flex items-center gap-2 ' + (
             activeCategory === 'spatial_kernels'
               ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-500/25 border border-indigo-400/40'
               : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-          }`}
+          )}
         >
           <Cpu className="w-4 h-4" />
           <span>{isKh ? '៣. តារាង Spatial Filter Kernels' : '3. Spatial Kernels'}</span>
@@ -338,11 +363,11 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
         <button
           onClick={() => setActiveCategory('representation')}
-          className={`px-4 py-2.5 rounded-xl transition flex items-center gap-2 ${
+          className={'px-4 py-2.5 rounded-xl transition flex items-center gap-2 ' + (
             activeCategory === 'representation'
               ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-500/25 border border-indigo-400/40'
               : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-          }`}
+          )}
         >
           <Eye className="w-4 h-4" />
           <span>{isKh ? '៤. រូបភាពជា Matrix' : '4. Image as a Matrix'}</span>
@@ -350,11 +375,11 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
         <button
           onClick={() => setActiveCategory('morphology_se')}
-          className={`px-4 py-2.5 rounded-xl transition flex items-center gap-2 ${
+          className={'px-4 py-2.5 rounded-xl transition flex items-center gap-2 ' + (
             activeCategory === 'morphology_se'
               ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-500/25 border border-indigo-400/40'
               : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-          }`}
+          )}
         >
           <Layers className="w-4 h-4" />
           <span>{isKh ? '៥. Morphology Structuring Elements' : '5. Morphology Elements'}</span>
@@ -362,11 +387,11 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
         <button
           onClick={() => setActiveCategory('affine_geom')}
-          className={`px-4 py-2.5 rounded-xl transition flex items-center gap-2 ${
+          className={'px-4 py-2.5 rounded-xl transition flex items-center gap-2 ' + (
             activeCategory === 'affine_geom'
               ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-500/25 border border-indigo-400/40'
               : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-          }`}
+          )}
         >
           <Move className="w-4 h-4" />
           <span>{isKh ? '៦. ម៉ាទ្រីស Affine & Geometric' : '6. Affine Transformations'}</span>
@@ -383,7 +408,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                   <Calculator className="w-4 h-4 text-amber-400" />
                   <span>{isKh ? 'ម៉ាស៊ីនគណនា Matrix វិមាត្រមិនស្មើគ្នា (M×K គុណនឹង K×N)' : 'Interactive Non-Equal Matrix Multiplier (M×K by K×N)'}</span>
                 </h3>
-                <p className={`text-xs text-slate-400 mt-1 ${isKh ? 'khmer-font' : ''}`}>
+                <p className={'text-xs text-slate-400 mt-1 ' + (isKh ? 'khmer-font' : '')}>
                   {isKh
                     ? 'វិធានគ្រឹះ៖ ជួរឈរនៃ Matrix A ត្រូវតែស្មើនឹង ជួរដេកនៃ Matrix B (K = K)។ លទ្ធផល C នឹងមានទំហំ M × N។'
                     : 'Golden Rule: Columns of Matrix A must equal Rows of Matrix B (K = K). Result C has dimension M × N.'}
@@ -393,42 +418,42 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-bold text-slate-400">{isKh ? 'គំរូទំហំ៖' : 'Presets:'}</span>
                 <button
-                  onClick={() => handleResizeNonEqual(2, 3, 2)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ${
-                    dimM === 2 && dimK === 3 && dimN === 2 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  (2×3) × (3×2) → 2×2
-                </button>
-                <button
-                  onClick={() => handleResizeNonEqual(3, 2, 3)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ${
-                    dimM === 3 && dimK === 2 && dimN === 3 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  (3×2) × (2×3) → 3×3
-                </button>
-                <button
                   onClick={() => handleResizeNonEqual(3, 4, 2)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ${
+                  className={'px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ' + (
                     dimM === 3 && dimK === 4 && dimN === 2 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
+                  )}
                 >
                   (3×4) × (4×2) → 3×2
                 </button>
                 <button
                   onClick={() => handleResizeNonEqual(2, 3, 4)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ${
+                  className={'px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ' + (
                     dimM === 2 && dimK === 3 && dimN === 4 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
+                  )}
                 >
                   (2×3) × (3×4) → 2×4
                 </button>
                 <button
+                  onClick={() => handleResizeNonEqual(2, 3, 2)}
+                  className={'px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ' + (
+                    dimM === 2 && dimK === 3 && dimN === 2 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  )}
+                >
+                  (2×3) × (3×2) → 2×2
+                </button>
+                <button
+                  onClick={() => handleResizeNonEqual(3, 2, 3)}
+                  className={'px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ' + (
+                    dimM === 3 && dimK === 2 && dimN === 3 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  )}
+                >
+                  (3×2) × (2×3) → 3×3
+                </button>
+                <button
                   onClick={() => handleResizeNonEqual(3, 3, 1)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ${
+                  className={'px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition ' + (
                     dimM === 3 && dimK === 3 && dimN === 1 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
+                  )}
                 >
                   (3×3) × (3×1) → 3×1
                 </button>
@@ -504,22 +529,22 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                 <div className="matrix-bracket">
                   <div
                     className="grid gap-2"
-                    style={{ gridTemplateColumns: `repeat(${dimK}, minmax(42px, 52px))` }}
+                    style={{ gridTemplateColumns: 'repeat(' + dimK + ', minmax(42px, 52px))' }}
                   >
                     {nonEqualA.map((row, r) =>
                       row.map((val, c) => {
                         const isRowActive = activeNonEqualCell.r === r;
                         return (
                           <input
-                            key={`nea-${r}-${c}`}
+                            key={'nea-' + r + '-' + c}
                             type="number"
                             value={val}
                             onChange={(e) => handleUpdateNonEqualCell(true, r, c, parseInt(e.target.value))}
-                            className={`h-11 text-center text-xs font-mono font-bold rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 transition ${
+                            className={'h-11 text-center text-xs font-mono font-bold rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 transition ' + (
                               isRowActive
                                 ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-400 font-black shadow-md shadow-amber-500/30'
                                 : 'bg-slate-800 text-slate-200 border border-slate-700 hover:border-slate-600'
-                            }`}
+                            )}
                           />
                         );
                       })
@@ -540,22 +565,22 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                 <div className="matrix-bracket">
                   <div
                     className="grid gap-2"
-                    style={{ gridTemplateColumns: `repeat(${dimN}, minmax(42px, 52px))` }}
+                    style={{ gridTemplateColumns: 'repeat(' + dimN + ', minmax(42px, 52px))' }}
                   >
                     {nonEqualB.map((row, r) =>
                       row.map((val, c) => {
                         const isColActive = activeNonEqualCell.c === c;
                         return (
                           <input
-                            key={`neb-${r}-${c}`}
+                            key={'neb-' + r + '-' + c}
                             type="number"
                             value={val}
                             onChange={(e) => handleUpdateNonEqualCell(false, r, c, parseInt(e.target.value))}
-                            className={`h-11 text-center text-xs font-mono font-bold rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 transition ${
+                            className={'h-11 text-center text-xs font-mono font-bold rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 transition ' + (
                               isColActive
                                 ? 'bg-cyan-500 text-slate-950 ring-2 ring-cyan-400 font-black shadow-md shadow-cyan-500/30'
                                 : 'bg-slate-800 text-slate-200 border border-slate-700 hover:border-slate-600'
-                            }`}
+                            )}
                           />
                         );
                       })
@@ -576,20 +601,20 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                 <div className="matrix-bracket">
                   <div
                     className="grid gap-2"
-                    style={{ gridTemplateColumns: `repeat(${dimN}, minmax(44px, 54px))` }}
+                    style={{ gridTemplateColumns: 'repeat(' + dimN + ', minmax(44px, 54px))' }}
                   >
                     {nonEqualResult.res.map((row, r) =>
                       row.map((val, c) => {
                         const isActive = activeNonEqualCell.r === r && activeNonEqualCell.c === c;
                         return (
                           <button
-                            key={`nec-${r}-${c}`}
+                            key={'nec-' + r + '-' + c}
                             onClick={() => setActiveNonEqualCell({ r, c })}
-                            className={`h-11 flex flex-col items-center justify-center rounded-xl font-mono text-xs font-bold transition ${
+                            className={'h-11 flex flex-col items-center justify-center rounded-xl font-mono text-xs font-bold transition ' + (
                               isActive
                                 ? 'bg-emerald-500 text-slate-950 ring-4 ring-emerald-500/40 scale-105 shadow-lg shadow-emerald-500/30'
                                 : 'bg-slate-800/90 text-emerald-300 border border-emerald-500/20 hover:bg-slate-700/80'
-                            }`}
+                            )}
                           >
                             <span>{val}</span>
                             <span className="text-[8px] opacity-60 font-sans">
@@ -632,7 +657,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                 </div>
 
                 <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 text-xs overflow-x-auto">
-                  <MathRenderer content={`$$${activeNonEqualInfo.formula}$$`} />
+                  <MathRenderer content={'$$' + activeNonEqualInfo.formula + '$$'} />
                 </div>
 
                 <div className="flex flex-wrap gap-2 text-xs font-mono">
@@ -647,7 +672,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                   ))}
                 </div>
 
-                <p className={`text-slate-300 text-xs leading-relaxed font-sans ${isKh ? 'khmer-font' : ''}`}>
+                <p className={'text-slate-300 text-xs leading-relaxed font-sans ' + (isKh ? 'khmer-font' : '')}>
                   {isKh ? activeNonEqualInfo.explanationKh : activeNonEqualInfo.explanationEn}
                 </p>
               </div>
@@ -656,90 +681,107 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
         </div>
       )}
 
-      {/* 2. UNEQUAL MATRICES COMPREHENSIVE VISUAL GUIDE (SUPER EASY TO READ) */}
+      {/* 2. UNEQUAL MATRICES COMPREHENSIVE VISUAL GUIDE (5 LESSONS) */}
       {activeCategory === 'unequal_theory' && (
         <div className="space-y-6 animate-fadeIn">
-          {/* Sub Tab Switcher for 4 Cases */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 p-1.5 bg-slate-900/90 rounded-2xl border border-slate-800">
+          {/* Sub Tab Switcher for 5 Lessons */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 p-1.5 bg-slate-900/90 rounded-2xl border border-slate-800">
             <button
               onClick={() => setSelectedTheoryCase('mult')}
-              className={`p-3 rounded-xl text-left transition flex flex-col gap-1 ${
+              className={'p-3 rounded-xl text-left transition flex flex-col gap-1 ' + (
                 selectedTheoryCase === 'mult'
                   ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg shadow-amber-500/20 border border-amber-400/40'
                   : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-              }`}
+              )}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-mono">ករណីទី ១</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-mono">មេរៀនទី ១</span>
                 <Calculator className="w-3.5 h-3.5" />
               </div>
               <span className="text-xs font-bold leading-tight">
-                {isKh ? 'ការគុណ Matrix ខុសវិមាត្រ' : 'Multiplication (M×K × K×N)'}
+                {isKh ? 'គុណ Matrix មិនស្មើគ្នា' : 'Multiplication (M×K × K×N)'}
               </span>
             </button>
 
             <button
               onClick={() => setSelectedTheoryCase('conv')}
-              className={`p-3 rounded-xl text-left transition flex flex-col gap-1 ${
+              className={'p-3 rounded-xl text-left transition flex flex-col gap-1 ' + (
                 selectedTheoryCase === 'conv'
                   ? 'bg-gradient-to-r from-cyan-600 to-cyan-700 text-white shadow-lg shadow-cyan-500/20 border border-cyan-400/40'
                   : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-              }`}
+              )}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-mono">ករណីទី ២</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-mono">មេរៀនទី ២</span>
                 <Cpu className="w-3.5 h-3.5" />
               </div>
               <span className="text-xs font-bold leading-tight">
-                {isKh ? 'Spatial 2D Convolution (4×4 → 2×2)' : '2D Convolution Reduction'}
+                {isKh ? '2D Spatial Convolution' : '2D Spatial Convolution'}
               </span>
             </button>
 
             <button
               onClick={() => setSelectedTheoryCase('morph')}
-              className={`p-3 rounded-xl text-left transition flex flex-col gap-1 ${
+              className={'p-3 rounded-xl text-left transition flex flex-col gap-1 ' + (
                 selectedTheoryCase === 'morph'
                   ? 'bg-gradient-to-r from-pink-600 to-pink-700 text-white shadow-lg shadow-pink-500/20 border border-pink-400/40'
                   : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-              }`}
+              )}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-mono">ករណីទី ៣</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-mono">មេរៀនទី ៣</span>
                 <Layers className="w-3.5 h-3.5" />
               </div>
               <span className="text-xs font-bold leading-tight">
-                {isKh ? 'Morphology Binary (4×5 + SE 2×2)' : 'Binary Morphology SE'}
+                {isKh ? 'Morphology (Dilation/Erosion)' : 'Binary Morphology SE'}
               </span>
             </button>
 
             <button
               onClick={() => setSelectedTheoryCase('add')}
-              className={`p-3 rounded-xl text-left transition flex flex-col gap-1 ${
+              className={'p-3 rounded-xl text-left transition flex flex-col gap-1 ' + (
                 selectedTheoryCase === 'add'
                   ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg shadow-emerald-500/20 border border-emerald-400/40'
                   : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-              }`}
+              )}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-mono">ករណីទី ៤</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-mono">មេរៀនទី ៤</span>
                 <Grid className="w-3.5 h-3.5" />
               </div>
               <span className="text-xs font-bold leading-tight">
-                {isKh ? 'ការបូកដក Zero-Padding (A ± B)' : 'Addition & Zero-Padding'}
+                {isKh ? 'បូកដក Zero-Padding' : 'Zero-Padding Addition'}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setSelectedTheoryCase('trans_scalar')}
+              className={'p-3 rounded-xl text-left transition flex flex-col gap-1 ' + (
+                selectedTheoryCase === 'trans_scalar'
+                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-500/20 border border-purple-400/40'
+                  : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-mono">មេរៀនទី ៥</span>
+                <RotateCw className="w-3.5 h-3.5" />
+              </div>
+              <span className="text-xs font-bold leading-tight">
+                {isKh ? 'Transpose & Scalar' : 'Transpose & Scaling'}
               </span>
             </button>
           </div>
 
-          {/* CASE 1: MULTIPLICATION */}
+          {/* LESSON 1: MULTIPLICATION */}
           {selectedTheoryCase === 'mult' && (
             <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20 mb-2">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> ករណីទី ១៖ ការគុណ Matrix វិមាត្រមិនស្មើគ្នា (Row × Column)
+                    <CheckCircle2 className="w-3.5 h-3.5" /> មេរៀនទី ១៖ របៀបគុណ Matrix វិមាត្រមិនស្មើគ្នា (M×K គុណ K×N)
                   </div>
                   <h3 className="text-xl font-bold text-white">
-                    {isKh ? 'វិធានគ្រឹះ៖ ជួរឈរ A = ជួរដេក B (K = K) ទើបអាចគុណបាន' : 'Matrix Multiplication: Columns of A must equal Rows of B'}
+                    {isKh ? 'វិធានគ្រឹះ៖ ជួរឈរនៃ A ត្រូវតែស្មើនឹង ជួរដេកនៃ B (K = K) ទើបអាចគុណបាន' : 'Matrix Multiplication: Columns of A must equal Rows of B'}
                   </h3>
                 </div>
                 <div className="px-4 py-2 bg-slate-900 rounded-xl border border-slate-800 font-mono text-xs font-bold text-amber-300">
@@ -750,10 +792,10 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
               {/* Visual Diagram Box */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
                 <div className="lg:col-span-6 space-y-4">
-                  <p className={`text-xs md:text-sm text-slate-300 leading-relaxed ${isKh ? 'khmer-font' : ''}`}>
+                  <p className={'text-xs md:text-sm text-slate-300 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
                     {isKh
-                      ? 'ក្នុងការគុណ Matrix មិនស្មើគ្នា យើងមិនគុណតាមក្រឡាស្របគ្នាទេ ប៉ុន្តែយើងប្រើប្រមាណវិធី Dot Product ដោយយក រាល់ធាតុនៃជួរដេកទី i នៃ Matrix A គុណនឹងរាល់ធាតុនៃជួរឈរទី j នៃ Matrix B ហើយបូកបញ្ចូលគ្នា។'
-                      : 'Matrix multiplication calculates the inner dot product of row i from Matrix A with column j from Matrix B.'}
+                      ? 'ក្នុងការគុណ Matrix យើងមិនគុណតាមក្រឡាស្របគ្នាទេ ប៉ុន្តែយើងប្រើប្រមាណវិធី Dot Product ដោយយក រាល់ធាតុនៃជួរដេកទី r នៃ Matrix A (ផ្ដេក) គុណនឹងរាល់ធាតុនៃជួរឈរទី c នៃ Matrix B (បញ្ឈរ) រួចបូកបញ្ចូលគ្នាដើម្បីបានក្រឡា C[r,c]។'
+                      : 'Matrix multiplication calculates the inner dot product of row r from Matrix A with column c from Matrix B.'}
                   </p>
 
                   <div className="space-y-2 text-xs">
@@ -769,31 +811,37 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                         <strong className="text-emerald-300">Output Size (M × N):</strong> Matrix លទ្ធផលទទួលបានចំនួនជួរដេកពី A (M) និងចំនួនជួរឈរពី B (N)។
                       </span>
                     </div>
+                    <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 flex items-start gap-2.5">
+                      <span className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 font-bold flex items-center justify-center shrink-0">3</span>
+                      <span className="text-slate-300">
+                        <strong className="text-indigo-300">Non-Commutative:</strong> ជាទូទៅ $A \times B \neq B \times A$ មិនដូចការគុណលេខធម្មតាឡើយ។
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="lg:col-span-6 p-5 bg-slate-950 rounded-2xl border border-slate-800 space-y-4">
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block font-mono">
-                    ឧទាហរណ៍គំរូ KaTeX Formula:
+                    ឧទាហរណ៍ជាក់ស្តែង (3×4) × (4×2) → (3×2):
                   </span>
                   <div className="p-4 bg-slate-900/90 rounded-xl border border-slate-800 text-xs overflow-x-auto">
-                    <MathRenderer content={"$$\\begin{bmatrix} 1 & 2 & 3 \\\\ 4 & 5 & 6 \\end{bmatrix}_{2\\times3} \\begin{bmatrix} 7 & 8 \\\\ 9 & 1 \\\\ 2 & 3 \\end{bmatrix}_{3\\times2} = \\begin{bmatrix} 31 & 19 \\\\ 85 & 55 \\end{bmatrix}_{2\\times2}$$"} />
+                    <MathRenderer content={"$$\\begin{bmatrix} 1 & 2 & 3 & 4 \\\\ 2 & 0 & 1 & 3 \\\\ 1 & 1 & 0 & 2 \\end{bmatrix}_{3\\times4} \\begin{bmatrix} 2 & 1 \\\\ 3 & 0 \\\\ 1 & 2 \\\\ 4 & 1 \\end{bmatrix}_{4\\times2} = \\begin{bmatrix} 27 & 11 \\\\ 17 & 7 \\\\ 13 & 3 \\end{bmatrix}_{3\\times2}$$"} />
                   </div>
-                  <div className="p-3 bg-indigo-950/30 rounded-xl border border-indigo-800/40 text-[11px] text-indigo-300 font-mono">
-                    C[1,1] = (1×7) + (2×9) + (3×2) = 7 + 18 + 6 = 31
+                  <div className="p-3 bg-amber-950/30 rounded-xl border border-amber-800/40 text-[11px] text-amber-300 font-mono">
+                    C[1,1] = (1×2) + (2×3) + (3×1) + (4×4) = 2 + 6 + 3 + 16 = 27
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* CASE 2: CONVOLUTION */}
+          {/* LESSON 2: CONVOLUTION */}
           {selectedTheoryCase === 'conv' && (
             <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 mb-2">
-                    <Cpu className="w-3.5 h-3.5" /> ករណីទី ២៖ 2D Spatial Convolution (រូបភាពធំ + Kernel តូច)
+                    <Cpu className="w-3.5 h-3.5" /> មេរៀនទី ២៖ 2D Spatial Convolution (រូបភាពធំ + Kernel តូច)
                   </div>
                   <h3 className="text-xl font-bold text-white">
                     {isKh ? 'ការរួញទំហំដោយគ្មាន Padding: Output = (M - Kr + 1) × (N - Kc + 1)' : 'Valid Convolution: Output Dimension Reduction'}
@@ -818,13 +866,13 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                       { r: 1, c: 1, label: 'Output [2,2] (Bottom-Right)' }
                     ].map((pos) => (
                       <button
-                        key={`${pos.r}-${pos.c}`}
+                        key={pos.r + '-' + pos.c}
                         onClick={() => setConvPos({ r: pos.r, c: pos.c })}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition ${
+                        className={'px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition ' + (
                           convPos.r === pos.r && convPos.c === pos.c
                             ? 'bg-cyan-500 text-slate-950 ring-2 ring-cyan-400 font-black shadow-md shadow-cyan-500/20'
                             : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                        }`}
+                        )}
                       >
                         [{pos.r+1},{pos.c+1}]
                       </button>
@@ -846,12 +894,12 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                             c >= convPos.c && c < convPos.c + 3;
                           return (
                             <div
-                              key={`cimg-${r}-${c}`}
-                              className={`w-12 h-12 flex items-center justify-center font-mono text-xs font-bold rounded-xl transition ${
+                              key={'cimg-' + r + '-' + c}
+                              className={'w-12 h-12 flex items-center justify-center font-mono text-xs font-bold rounded-xl transition ' + (
                                 isInKernel
                                   ? 'bg-cyan-500 text-slate-950 ring-2 ring-cyan-400 font-black scale-105 shadow-md shadow-cyan-500/30'
                                   : 'bg-slate-800/80 text-slate-400'
-                              }`}
+                              )}
                             >
                               {val}
                             </div>
@@ -864,7 +912,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                   {/* Operation Symbol */}
                   <div className="lg:col-span-2 flex flex-col items-center justify-center text-center space-y-1">
                     <span className="text-2xl font-black text-cyan-400">★</span>
-                    <span className="text-[10px] font-mono text-slate-400">3×3 Kernel</span>
+                    <span className="text-[10px] font-mono text-slate-400">3×3 Kernel (1/10)</span>
                   </div>
 
                   {/* 2x2 Output Grid */}
@@ -878,12 +926,12 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                           const isActive = convPos.r === r && convPos.c === c;
                           return (
                             <div
-                              key={`cout-${r}-${c}`}
-                              className={`w-16 h-16 flex flex-col items-center justify-center font-mono text-sm font-bold rounded-xl transition ${
+                              key={'cout-' + r + '-' + c}
+                              className={'w-16 h-16 flex flex-col items-center justify-center font-mono text-sm font-bold rounded-xl transition ' + (
                                 isActive
                                   ? 'bg-emerald-500 text-slate-950 ring-4 ring-emerald-500/40 scale-105 shadow-lg shadow-emerald-500/30'
                                   : 'bg-slate-800 text-slate-400'
-                              }`}
+                              )}
                             >
                               <span>{isActive ? activeConvWindow.avg : '...'}</span>
                               <span className="text-[9px] opacity-70">[{r+1},{c+1}]</span>
@@ -902,13 +950,13 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
             </div>
           )}
 
-          {/* CASE 3: MORPHOLOGY */}
+          {/* LESSON 3: MORPHOLOGY */}
           {selectedTheoryCase === 'morph' && (
             <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-pink-500/10 text-pink-300 border border-pink-500/20 mb-2">
-                    <Layers className="w-3.5 h-3.5" /> ករណីទី ៣៖ Morphology លើរូបភាព Binary $4\times5$ និង SE $2\times2$
+                    <Layers className="w-3.5 h-3.5" /> មេរៀនទី ៣៖ Morphology លើរូបភាព Binary 4×5 និង SE 2×2
                   </div>
                   <h3 className="text-xl font-bold text-white">
                     {isKh ? 'Dilation (រីកធំតាម SE) vs Erosion (រួមតូចតាម SE)' : 'Morphological Operations with Asymmetric SE'}
@@ -917,21 +965,21 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setMorphMode('dilation')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                    className={'px-3 py-1.5 rounded-xl text-xs font-bold transition ' + (
                       morphMode === 'dilation'
                         ? 'bg-pink-600 text-white shadow-md shadow-pink-500/20'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
+                    )}
                   >
                     Dilation (A ⊕ S)
                   </button>
                   <button
                     onClick={() => setMorphMode('erosion')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                    className={'px-3 py-1.5 rounded-xl text-xs font-bold transition ' + (
                       morphMode === 'erosion'
                         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
+                    )}
                   >
                     Erosion (A ⊖ S)
                   </button>
@@ -948,12 +996,12 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                     {sampleBinaryImage.map((row, r) =>
                       row.map((val, c) => (
                         <div
-                          key={`bimg-${r}-${c}`}
-                          className={`w-10 h-10 flex items-center justify-center font-mono text-xs font-bold rounded-lg ${
+                          key={'bimg-' + r + '-' + c}
+                          className={'w-10 h-10 flex items-center justify-center font-mono text-xs font-bold rounded-lg ' + (
                             val === 1
                               ? 'bg-amber-500 text-slate-950 font-black'
                               : 'bg-slate-800/80 text-slate-500'
-                          }`}
+                          )}
                         >
                           {val}
                         </div>
@@ -991,14 +1039,14 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                     {(morphMode === 'dilation' ? sampleDilationResult : sampleErosionResult).map((row, r) =>
                       row.map((val, c) => (
                         <div
-                          key={`mres-${r}-${c}`}
-                          className={`w-10 h-10 flex items-center justify-center font-mono text-xs font-bold rounded-lg transition ${
+                          key={'mres-' + r + '-' + c}
+                          className={'w-10 h-10 flex items-center justify-center font-mono text-xs font-bold rounded-lg transition ' + (
                             val === 1
                               ? morphMode === 'dilation'
                                 ? 'bg-pink-500 text-slate-950 font-black shadow-md shadow-pink-500/20'
                                 : 'bg-indigo-500 text-white font-black shadow-md shadow-indigo-500/20'
                               : 'bg-slate-800/80 text-slate-500'
-                          }`}
+                          )}
                         >
                           {val}
                         </div>
@@ -1012,21 +1060,21 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                 <MathRenderer
                   content={
                     morphMode === 'dilation'
-                      ? '$$A \\oplus S = \\{ z \\mid (\\hat{S})_z \\cap A \\neq \\emptyset \\} \\implies \\text{Expanded Binary Matrix}$$'
-                      : '$$A \\ominus S = \\{ z \\mid (S)_z \\subseteq A \\} \\implies \\text{Shrunk Binary Matrix}$$'
+                      ? '$$A \\oplus S = \\{ z \\mid (\\hat{S})_z \\cap A \\neq \\emptyset \\} \\implies \\text{Expanded Binary Matrix (Dilation)}$$'
+                      : '$$A \\ominus S = \\{ z \\mid (S)_z \\subseteq A \\} \\implies \\text{Shrunk Binary Matrix (Erosion)}$$'
                   }
                 />
               </div>
             </div>
           )}
 
-          {/* CASE 4: ADDITION & ZERO PADDING */}
+          {/* LESSON 4: ADDITION & ZERO PADDING */}
           {selectedTheoryCase === 'add' && (
             <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 mb-2">
-                    <Grid className="w-3.5 h-3.5" /> ករណីទី ៤៖ ការបូក (+) ឬ ដក (-) Matrix ខុសទំហំគ្នា
+                    <Grid className="w-3.5 h-3.5" /> មេរៀនទី ៤៖ ការបូក (+) ឬ ដក (-) Matrix ខុសទំហំគ្នា
                   </div>
                   <h3 className="text-xl font-bold text-white">
                     {isKh ? 'ដំណោះស្រាយ៖ ប្រើ Zero-Padding (ថែមលេខ ០) ឱ្យស្មើទំហំគ្នាជាមុនសិន' : 'Zero-Padding Alignment for Matrix Addition / Subtraction'}
@@ -1035,31 +1083,31 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPaddingStep('unpadded')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                    className={'px-3 py-1.5 rounded-xl text-xs font-bold transition ' + (
                       paddingStep === 'unpadded'
                         ? 'bg-rose-600 text-white'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
+                    )}
                   >
                     1. មិនទាន់ Pad (Error!)
                   </button>
                   <button
                     onClick={() => setPaddingStep('padded')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                    className={'px-3 py-1.5 rounded-xl text-xs font-bold transition ' + (
                       paddingStep === 'padded'
                         ? 'bg-amber-600 text-white'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
+                    )}
                   >
                     2. Zero-Padded (3×3)
                   </button>
                   <button
                     onClick={() => setPaddingStep('added')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                    className={'px-3 py-1.5 rounded-xl text-xs font-bold transition ' + (
                       paddingStep === 'added'
                         ? 'bg-emerald-600 text-white'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
+                    )}
                   >
                     3. ផលបូក A + B
                   </button>
@@ -1076,7 +1124,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                     <div className="matrix-bracket">
                       <div
                         className="grid gap-2"
-                        style={{ gridTemplateColumns: `repeat(${paddingStep === 'unpadded' ? 2 : 3}, 44px)` }}
+                        style={{ gridTemplateColumns: 'repeat(' + (paddingStep === 'unpadded' ? 2 : 3) + ', 44px)' }}
                       >
                         {paddingStep === 'unpadded' ? (
                           [
@@ -1084,7 +1132,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                             [1, 4]
                           ].map((row, r) =>
                             row.map((val, c) => (
-                              <div key={`pau-${r}-${c}`} className="h-11 flex items-center justify-center rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold font-mono text-xs">
+                              <div key={'pau-' + r + '-' + c} className="h-11 flex items-center justify-center rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold font-mono text-xs">
                                 {val}
                               </div>
                             ))
@@ -1099,12 +1147,12 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                               const isPadding = r === 2 || c === 2;
                               return (
                                 <div
-                                  key={`pap-${r}-${c}`}
-                                  className={`h-11 flex items-center justify-center rounded-xl font-bold font-mono text-xs transition ${
+                                  key={'pap-' + r + '-' + c}
+                                  className={'h-11 flex items-center justify-center rounded-xl font-bold font-mono text-xs transition ' + (
                                     isPadding
                                       ? 'bg-emerald-500/20 border-2 border-dashed border-emerald-400 text-emerald-300'
                                       : 'bg-amber-500/20 border border-amber-500/40 text-amber-300'
-                                  }`}
+                                  )}
                                 >
                                   {val}
                                 </div>
@@ -1131,7 +1179,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                           [4, 1, 3]
                         ].map((row, r) =>
                           row.map((val, c) => (
-                            <div key={`pb-${r}-${c}`} className="w-11 h-11 flex items-center justify-center rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-bold font-mono text-xs">
+                            <div key={'pb-' + r + '-' + c} className="w-11 h-11 flex items-center justify-center rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-bold font-mono text-xs">
                               {val}
                             </div>
                           ))
@@ -1161,7 +1209,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                             [4, 1, 3]
                           ].map((row, r) =>
                             row.map((val, c) => (
-                              <div key={`pc-${r}-${c}`} className="w-11 h-11 flex items-center justify-center rounded-xl bg-emerald-500 text-slate-950 font-black font-mono text-xs shadow-md shadow-emerald-500/20">
+                              <div key={'pc-' + r + '-' + c} className="w-11 h-11 flex items-center justify-center rounded-xl bg-emerald-500 text-slate-950 font-black font-mono text-xs shadow-md shadow-emerald-500/20">
                                 {val}
                               </div>
                             ))
@@ -1174,6 +1222,92 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
                 <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 text-xs">
                   <MathRenderer content={"$$\\text{Zero-Pad } A_{2\\times2} \\to \\begin{bmatrix} 5 & 2 & 0 \\\\ 1 & 4 & 0 \\\\ 0 & 0 & 0 \\end{bmatrix}_{3\\times3} \\implies A_{3\\times3} + B_{3\\times3} = \\begin{bmatrix} 6 & 5 & 2 \\\\ 3 & 4 & 1 \\\\ 4 & 1 & 3 \\end{bmatrix}$$"} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* LESSON 5: TRANSPOSE & SCALAR MULTIPLICATION */}
+          {selectedTheoryCase === 'trans_scalar' && (
+            <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-500/10 text-purple-300 border border-purple-500/20 mb-2">
+                    <RotateCw className="w-3.5 h-3.5" /> មេរៀនទី ៥៖ ម៉ាទ្រីស Transpose ($A^T$) និង Scalar Scaling ($k \cdot A$)
+                  </div>
+                  <h3 className="text-xl font-bold text-white">
+                    {isKh ? 'ការត្រឡប់ជួរដេកទៅជាជួរឈរ (Transpose) & ការគុណនឹងចំនួនថេរ (Scalar)' : 'Matrix Transposition & Scalar Scaling in Image Processing'}
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsTransposed(!isTransposed)}
+                    className={'px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ' + (
+                      isTransposed
+                        ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    )}
+                  >
+                    <RotateCw className="w-3.5 h-3.5" /> {isTransposed ? 'Matrix Transpose A^T (4×3)' : 'Matrix ដើម A (3×4)'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center p-6 bg-slate-950 rounded-3xl border border-slate-800">
+                {/* Visual Matrix Display */}
+                <div className="lg:col-span-6 flex flex-col items-center space-y-3">
+                  <span className="text-xs font-bold text-purple-400 font-mono">
+                    {isTransposed ? 'Transposed Matrix A^T (4×3)' : 'Original Matrix A (3×4)'}
+                  </span>
+                  <div className="matrix-bracket">
+                    <div
+                      className="grid gap-2"
+                      style={{ gridTemplateColumns: 'repeat(' + (isTransposed ? 3 : 4) + ', 44px)' }}
+                    >
+                      {(isTransposed ? transposed3x4 : sampleBase3x4).map((row, r) =>
+                        row.map((val, c) => (
+                          <div
+                            key={'ts-' + r + '-' + c}
+                            className="h-11 flex items-center justify-center font-mono text-xs font-bold rounded-xl bg-slate-800 text-purple-300 border border-purple-500/30"
+                          >
+                            {val * sampleScalarK}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Scalar Scaling Controls */}
+                <div className="lg:col-span-6 space-y-4">
+                  <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-3">
+                    <div className="flex justify-between items-center text-xs font-mono">
+                      <span className="text-purple-300 font-bold">Scalar Multiplier (k): {sampleScalarK}x</span>
+                      <span className="text-slate-400">Brightness / Contrast Factor</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1}
+                      max={5}
+                      step={1}
+                      value={sampleScalarK}
+                      onChange={(e) => setSampleScalarK(parseInt(e.target.value))}
+                      className="w-full accent-purple-500 bg-slate-800 h-2 rounded-lg"
+                    />
+                    <p className={'text-[11px] text-slate-400 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
+                      {isKh
+                        ? 'ក្នុង DIP ការគុណ Scalar ($k \cdot A$) គឺយកគ្រប់កោសិកាគុណនឹង $k$ ដើម្បីបង្កើនពន្លឺ ឬកម្រិត Contrast នៃរូបភាព។'
+                        : 'In Digital Image Processing, scalar multiplication scales all pixel intensities linearly to adjust gain or contrast.'}
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 text-xs">
+                    <MathRenderer
+                      content={
+                        '$$A = \\begin{bmatrix} 1 & 2 & 3 & 4 \\\\ 5 & 6 & 7 & 8 \\\\ 9 & 10 & 11 & 12 \\end{bmatrix}_{3\\times4} \\implies A^T = \\begin{bmatrix} 1 & 5 & 9 \\\\ 2 & 6 & 10 \\\\ 3 & 7 & 11 \\\\ 4 & 8 & 12 \\end{bmatrix}_{4\\times3}$$'
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1197,18 +1331,18 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                       <button
                         key={key}
                         onClick={() => setSelectedKernelKey(key)}
-                        className={`w-full text-left p-3 rounded-xl transition flex items-start gap-3 border ${
+                        className={'w-full text-left p-3 rounded-xl transition flex items-start gap-3 border ' + (
                           isSelected
                             ? 'bg-indigo-600/20 border-indigo-500 text-white ring-1 ring-indigo-500/30'
                             : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/80'
-                        }`}
+                        )}
                       >
                         <span
-                          className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${
+                          className={'w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ' + (
                             k.category === 'smoothing'
                               ? 'bg-emerald-400'
                               : 'bg-indigo-400'
-                          }`}
+                          )}
                         />
                         <div className="min-w-0">
                           <div className="text-xs font-bold truncate">{k.name}</div>
@@ -1242,12 +1376,12 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                   <div className="matrix-bracket">
                     <div
                       className="grid gap-2"
-                      style={{ gridTemplateColumns: `repeat(${selectedKernel.matrix[0].length}, 44px)` }}
+                      style={{ gridTemplateColumns: 'repeat(' + selectedKernel.matrix[0].length + ', 44px)' }}
                     >
                       {selectedKernel.matrix.map((row, r) =>
                         row.map((val, c) => (
                           <div
-                            key={`k-${r}-${c}`}
+                            key={'k-' + r + '-' + c}
                             className="h-11 flex items-center justify-center font-mono text-xs font-bold rounded-xl bg-slate-800 text-slate-200 border border-slate-700"
                           >
                             {val}
@@ -1261,7 +1395,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                 <div className="space-y-2 text-xs">
                   <span className="text-slate-400 font-bold block">Formula:</span>
                   <div className="p-3 bg-slate-900 rounded-xl border border-slate-800">
-                    <MathRenderer content={`$$${selectedKernel.mathFormula}$$`} />
+                    <MathRenderer content={'$$' + selectedKernel.mathFormula + '$$'} />
                   </div>
                 </div>
               </div>
@@ -1275,7 +1409,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
             <h3 className="text-base font-bold text-white">2D Grayscale Matrix</h3>
-            <p className={`text-xs text-slate-400 leading-relaxed ${isKh ? 'khmer-font' : ''}`}>
+            <p className={'text-xs text-slate-400 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
               {isKh
                 ? 'រូបភាពសខ្មៅ (Grayscale) ត្រូវបានតំណាងដោយ Matrix 2D ទំហំ M × N ដែលធាតុ f(r,c) ស្ថិតក្នុង [0, 255]។'
                 : 'A 2D array of intensity samples I(r,c) in [0, 255] for standard 8-bit unsigned integer pixel depth.'}
@@ -1287,7 +1421,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
             <h3 className="text-base font-bold text-white">3D Color Tensor (RGB/HSV)</h3>
-            <p className={`text-xs text-slate-400 leading-relaxed ${isKh ? 'khmer-font' : ''}`}>
+            <p className={'text-xs text-slate-400 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
               {isKh
                 ? 'រូបភាពពណ៌មាន 3 ស្រទាប់ Matrix 2D ផ្គុំគ្នា (Tensor M × N × 3)។'
                 : 'A 3D tensor M × N × 3 stacking 3 independent color matrices.'}
@@ -1299,7 +1433,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
             <h3 className="text-base font-bold text-white">Binary Image Matrix</h3>
-            <p className={`text-xs text-slate-400 leading-relaxed ${isKh ? 'khmer-font' : ''}`}>
+            <p className={'text-xs text-slate-400 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
               {isKh
                 ? 'រូបភាព Binary មានតម្លៃតែ 0 (ផ្ទៃខាងក្រោយ) និង 1 (វត្ថុ) ប្រើសម្រាប់ Morphology។'
                 : 'A Boolean matrix with values in {0, 1} for morphological set operations.'}
@@ -1317,7 +1451,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
             <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">Exercise 7 Structure</span>
             <h3 className="text-lg font-bold text-white">Symmetric Cross Structuring Element</h3>
-            <p className={`text-xs text-slate-300 leading-relaxed ${isKh ? 'khmer-font' : ''}`}>
+            <p className={'text-xs text-slate-300 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
               {isKh ? 'Origin ស្ថិតនៅចំកណ្តាល (1,1)។ រីកសាយស្មើគ្នាទៅលើ ក្រោម ឆ្វេង ស្តាំ។' : 'Origin at center (1,1). Symmetrical expansion.'}
             </p>
           </div>
@@ -1325,7 +1459,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
             <span className="text-xs font-bold text-pink-400 uppercase tracking-wider">Exercise 8 Structure</span>
             <h3 className="text-lg font-bold text-white">Non-Symmetric Top-Left Origin Element (2x2)</h3>
-            <p className={`text-xs text-slate-300 leading-relaxed ${isKh ? 'khmer-font' : ''}`}>
+            <p className={'text-xs text-slate-300 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
               {isKh ? 'Origin ស្ថិតនៅជ្រុងលើឆ្វេង (0,0)។ រីកសាយលម្អៀងទៅស្តាំ និងក្រោមស្តាំ។' : 'Origin at top-left (0,0). Biased expansion.'}
             </p>
           </div>
@@ -1379,7 +1513,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
             <h3 className="text-base font-bold text-white">Computed Homogeneous Affine Matrix</h3>
             <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 text-xs">
               <MathRenderer
-                content={`$$M = \\begin{bmatrix} ${m00} & ${m01} & ${m02} \\\\ ${m10} & ${m11} & ${m12} \\\\ 0 & 0 & 1 \\end{bmatrix}$$`}
+                content={'$$M = \\begin{bmatrix} ' + m00 + ' & ' + m01 + ' & ' + m02 + ' \\\\ ' + m10 + ' & ' + m11 + ' & ' + m12 + ' \\\\ 0 & 0 & 1 \\end{bmatrix}$$'}
               />
             </div>
           </div>
