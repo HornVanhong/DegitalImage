@@ -1186,18 +1186,20 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
             </div>
           )}
 
-          {/* LESSON 4: ADDITION & ZERO PADDING */}
+          {/* LESSON 4: ADDITION, ZERO-PADDING & BROADCASTING */}
           {selectedTheoryCase === 'add' && (
             <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 mb-2">
-                    <Grid className="w-3.5 h-3.5" /> មេរៀនទី ៤៖ ការបូក (+) ឬ ដក (-) Matrix ខុសទំហំគ្នា
+                    <Grid className="w-3.5 h-3.5" /> មេរៀនទី ៤៖ ការបូក (+) & ដក (-) Matrix ខុសទំហំ (Zero-Padding & Broadcasting)
                   </div>
                   <h3 className="text-xl font-bold text-white">
-                    {isKh ? 'ដំណោះស្រាយ៖ ប្រើ Zero-Padding (ថែមលេខ ០) ឱ្យស្មើទំហំគ្នាជាមុនសិន' : 'Zero-Padding Alignment for Matrix Addition / Subtraction'}
+                    {isKh ? 'វិធីទី ១៖ Zero-Padding (ថែមលេខ ០) & វិធីទី ២៖ Broadcasting (ផ្សាយពង្រីក Vector)' : 'Zero-Padding Alignment & Vector Broadcasting in DIP'}
                   </h3>
                 </div>
+                
+                {/* 3 Steps Stepper */}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPaddingStep('unpadded')}
@@ -1217,7 +1219,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     )}
                   >
-                    2. Zero-Padded (3×3)
+                    2. Pad ជួរឈរ ០ (2×3)
                   </button>
                   <button
                     onClick={() => setPaddingStep('added')}
@@ -1227,27 +1229,37 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     )}
                   >
-                    3. ផលបូក A + B
+                    3. បូក A + B (2×3)
                   </button>
                 </div>
               </div>
 
-              <div className="p-6 bg-slate-950 rounded-3xl border border-slate-800 space-y-4">
+              {/* Zero-Padding Interactive Section (User's Exact Example: A 2x2 + B 2x3) */}
+              <div className="p-6 bg-slate-950 rounded-3xl border border-slate-800 space-y-5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4" /> ឧទាហរណ៍ជាក់ស្តែង៖ Matrix A (2×2) បូក Matrix B (2×3)
+                  </span>
+                  <span className="text-[11px] font-mono text-slate-400 px-2.5 py-1 bg-slate-900 rounded-lg border border-slate-800">
+                    Element-wise Addition
+                  </span>
+                </div>
+
                 <div className="flex flex-wrap items-center justify-center gap-6 py-4">
                   {/* Matrix A */}
                   <div className="flex flex-col items-center">
                     <span className="text-xs font-bold text-amber-400 mb-2 font-mono">
-                      Matrix A ({paddingStep === 'unpadded' ? '2×2' : '3×3 Padded'})
+                      Matrix A ({paddingStep === 'unpadded' ? '2×2' : '2×3 Padded'})
                     </span>
                     <div className="matrix-bracket">
                       <div
                         className="grid gap-2"
-                        style={{ gridTemplateColumns: 'repeat(' + (paddingStep === 'unpadded' ? 2 : 3) + ', 44px)' }}
+                        style={{ gridTemplateColumns: 'repeat(' + (paddingStep === 'unpadded' ? 2 : 3) + ', 48px)' }}
                       >
                         {paddingStep === 'unpadded' ? (
                           [
-                            [5, 2],
-                            [1, 4]
+                            [1, 2],
+                            [3, 4]
                           ].map((row, r) =>
                             row.map((val, c) => (
                               <div key={'pau-' + r + '-' + c} className="h-11 flex items-center justify-center rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold font-mono text-xs">
@@ -1257,12 +1269,11 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                           )
                         ) : (
                           [
-                            [5, 2, 0],
-                            [1, 4, 0],
-                            [0, 0, 0]
+                            [1, 2, 0],
+                            [3, 4, 0]
                           ].map((row, r) =>
                             row.map((val, c) => {
-                              const isPadding = r === 2 || c === 2;
+                              const isPadding = c === 2;
                               return (
                                 <div
                                   key={'pap-' + r + '-' + c}
@@ -1287,17 +1298,16 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                   {/* Matrix B */}
                   <div className="flex flex-col items-center">
                     <span className="text-xs font-bold text-cyan-400 mb-2 font-mono">
-                      Matrix B (3×3)
+                      Matrix B (2×3)
                     </span>
                     <div className="matrix-bracket">
                       <div className="grid grid-cols-3 gap-2">
                         {[
-                          [1, 3, 2],
-                          [2, 0, 1],
-                          [4, 1, 3]
+                          [5, 6, 7],
+                          [8, 9, 10]
                         ].map((row, r) =>
                           row.map((val, c) => (
-                            <div key={'pb-' + r + '-' + c} className="w-11 h-11 flex items-center justify-center rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-bold font-mono text-xs">
+                            <div key={'pb-' + r + '-' + c} className="w-12 h-11 flex items-center justify-center rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-bold font-mono text-xs">
                               {val}
                             </div>
                           ))
@@ -1311,24 +1321,23 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                   {/* Result */}
                   <div className="flex flex-col items-center">
                     <span className="text-xs font-bold text-emerald-400 mb-2 font-mono">
-                      {paddingStep === 'added' ? 'Result C (3×3)' : 'Status'}
+                      {paddingStep === 'added' ? 'Result C = A + B (2×3)' : 'Status'}
                     </span>
                     {paddingStep === 'unpadded' ? (
-                      <div className="h-28 w-36 flex flex-col items-center justify-center rounded-2xl bg-rose-950/40 border border-rose-800/60 p-3 text-center">
+                      <div className="h-28 w-44 flex flex-col items-center justify-center rounded-2xl bg-rose-950/40 border border-rose-800/60 p-3 text-center">
                         <span className="text-rose-400 text-xs font-bold">Dimension Mismatch!</span>
-                        <span className="text-[10px] text-slate-400 mt-1">2×2 cannot add 3×3</span>
+                        <span className="text-[10px] text-slate-400 mt-1">2×2 មិនអាចបូកនឹង 2×3 បានទេ</span>
                       </div>
                     ) : (
                       <div className="matrix-bracket">
                         <div className="grid grid-cols-3 gap-2">
                           {[
-                            [6, 5, 2],
-                            [3, 4, 1],
-                            [4, 1, 3]
+                            [6, 8, 7],
+                            [11, 13, 10]
                           ].map((row, r) =>
                             row.map((val, c) => (
-                              <div key={'pc-' + r + '-' + c} className="w-11 h-11 flex items-center justify-center rounded-xl bg-emerald-500 text-slate-950 font-black font-mono text-xs shadow-md shadow-emerald-500/20">
-                                {val}
+                              <div key={'pc-' + r + '-' + c} className="w-12 h-11 flex flex-col items-center justify-center rounded-xl bg-emerald-500 text-slate-950 font-black font-mono text-xs shadow-md shadow-emerald-500/20">
+                                <span>{val}</span>
                               </div>
                             ))
                           )}
@@ -1338,8 +1347,51 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                   </div>
                 </div>
 
-                <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 text-xs">
-                  <MathRenderer content={"$$\\text{Zero-Pad } A_{2\\times2} \\to \\begin{bmatrix} 5 & 2 & 0 \\\\ 1 & 4 & 0 \\\\ 0 & 0 & 0 \\end{bmatrix}_{3\\times3} \\implies A_{3\\times3} + B_{3\\times3} = \\begin{bmatrix} 6 & 5 & 2 \\\\ 3 & 4 & 1 \\\\ 4 & 1 & 3 \\end{bmatrix}$$"} />
+                <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 text-xs overflow-x-auto">
+                  <MathRenderer content={"$$\\text{A (padded)} = \\begin{bmatrix} 1 & 2 & \\color{green}{0} \\\\ 3 & 4 & \\color{green}{0} \\end{bmatrix}_{2\\times3} \\implies A + B = \\begin{bmatrix} 1+5 & 2+6 & 0+7 \\\\ 3+8 & 4+9 & 0+10 \\end{bmatrix} = \\mathbf{\\begin{bmatrix} 6 & 8 & 7 \\\\ 11 & 13 & 10 \\end{bmatrix}_{2\\times3}}$$"} />
+                </div>
+              </div>
+
+              {/* Broadcasting Section in DIP */}
+              <div className="p-6 bg-slate-950/80 rounded-3xl border border-slate-800 space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                  <h4 className="text-sm font-bold text-white">
+                    {isKh ? 'វិធីទី ២៖ ការផ្សាយពង្រីកស្វ័យប្រវត្ត (Broadcasting ក្នុង NumPy / OpenCV)' : 'Method 2: Automatic Vector Broadcasting'}
+                  </h4>
+                </div>
+                <p className={'text-xs text-slate-300 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
+                  {isKh
+                    ? 'ក្នុងវិស័យកែច្នៃរូបភាពឌីជីថល (DIP) និង Deep Learning នៅពេលយើងចង់បន្ថែមពន្លឺ (Brightness Offset) ឬ Color Bias ទៅលើរូបភាពទាំងមូល យើងប្រើវិធី Broadcasting ដោយបូក Matrix រូបភាព (ឧ. 2×3) ជាមួយ Vector តែមួយជួរដេក (1×3) ឬ Vector តែមួយជួរឈរ (2×1)។ កម្មវិធីនឹងចម្លង (Duplicate) Vector នោះដោយស្វ័យប្រវត្តគ្រប់ជួរ!'
+                    : 'In Digital Image Processing & Deep Learning, Broadcasting allows adding a 1D color bias or brightness vector (e.g. 1×3 or 2×1) directly to a 2D matrix (2×3) without manual loops.'}
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  {/* Row vector broadcast */}
+                  <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-2">
+                    <span className="text-xs font-bold text-cyan-400 font-mono">
+                      1. Row Vector Broadcast: (2×3) + (1×3) → (2×3)
+                    </span>
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs overflow-x-auto">
+                      <MathRenderer content={"$$\\begin{bmatrix} 10 & 20 & 30 \\\\ 40 & 50 & 60 \\end{bmatrix} + \\begin{bmatrix} 5 & 5 & 5 \\end{bmatrix} = \\begin{bmatrix} 15 & 25 & 35 \\\\ 45 & 55 & 65 \\end{bmatrix}$$"} />
+                    </div>
+                    <span className="text-[11px] text-slate-400 font-sans block">
+                      {isKh ? '➡️ Vector [5, 5, 5] ត្រូវបានចម្លងទៅគ្រប់ជួរដេកទាំងអស់នៃរូបភាព។' : 'Vector [5, 5, 5] automatically duplicates across all rows.'}
+                    </span>
+                  </div>
+
+                  {/* Column vector broadcast */}
+                  <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-2">
+                    <span className="text-xs font-bold text-purple-400 font-mono">
+                      2. Column Vector Broadcast: (2×3) + (2×1) → (2×3)
+                    </span>
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs overflow-x-auto">
+                      <MathRenderer content={"$$\\begin{bmatrix} 10 & 20 & 30 \\\\ 40 & 50 & 60 \\end{bmatrix} + \\begin{bmatrix} 2 \\\\ 4 \\end{bmatrix} = \\begin{bmatrix} 12 & 22 & 32 \\\\ 44 & 54 & 64 \\end{bmatrix}$$"} />
+                    </div>
+                    <span className="text-[11px] text-slate-400 font-sans block">
+                      {isKh ? '➡️ Vector [[2], [4]] ត្រូវបានចម្លងទៅគ្រប់ជួរឈរទាំងអស់នៃរូបភាព។' : 'Vector [[2], [4]] automatically duplicates across all columns.'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
