@@ -8,10 +8,11 @@ import { LabsTab } from '@/components/tabs/LabsTab';
 import { MatrixTab } from '@/components/tabs/MatrixTab';
 import { ExamQuizTab } from '@/components/tabs/ExamQuizTab';
 import { PythonHubTab } from '@/components/tabs/PythonHubTab';
+import { BeginnerTab } from '@/components/tabs/BeginnerTab';
 import { Language, MainTab } from '@/types';
 
 export default function Home() {
-  const [currentTab, setCurrentTab] = useState<MainTab>('matrix');
+  const [currentTab, setCurrentTab] = useState<MainTab>('beginner');
   const [language, setLanguage] = useState<Language>('kh');
 
   const toggleLanguage = () => {
@@ -30,11 +31,14 @@ export default function Home() {
 
       {/* Main Content Body */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {currentTab === 'beginner' && (
+          <BeginnerTab language={language} onNavigateTab={setCurrentTab} />
+        )}
         {currentTab === 'overview' && (
           <OverviewTab language={language} onNavigateTab={setCurrentTab} />
         )}
         {currentTab === 'matrix' && (
-          <MatrixTab language={language} />
+          <MatrixTab language={language} onNavigateTab={setCurrentTab} />
         )}
         {currentTab === 'exercises' && (
           <ExercisesTab language={language} onNavigateTab={setCurrentTab} />

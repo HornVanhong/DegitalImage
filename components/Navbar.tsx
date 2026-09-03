@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Layers, Globe, BookOpen, FlaskConical, GraduationCap, Code2, Cpu } from 'lucide-react';
+import { Layers, Globe, BookOpen, FlaskConical, GraduationCap, Code2, Cpu, Sparkles } from 'lucide-react';
 import { Language, MainTab } from '@/types';
 
 interface NavbarProps {
@@ -20,6 +20,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const isKh = language === 'kh';
 
   const navTabs: { id: MainTab; labelEn: string; labelKh: string; icon: React.ReactNode }[] = [
+    { id: 'beginner', labelEn: '🌱 Beginner 101', labelKh: '🌱 មូលដ្ឋានគ្រឹះ 101', icon: <Sparkles className="w-4 h-4 text-emerald-400" /> },
     { id: 'overview', labelEn: 'Overview & Formulas', labelKh: 'ទិដ្ឋភាពទូទៅ & រូបមន្ត', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'matrix', labelEn: 'All Matrices Masterclass', labelKh: 'មេរៀន Matrix គ្រប់ប្រភេទ', icon: <Cpu className="w-4 h-4" /> },
     { id: 'exercises', labelEn: '8 Worked Exercises', labelKh: 'ដំណោះស្រាយលំហាត់ទាំង ៨', icon: <Layers className="w-4 h-4" /> },

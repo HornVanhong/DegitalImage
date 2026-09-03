@@ -27,7 +27,7 @@ import {
   Info,
   Lightbulb
 } from 'lucide-react';
-import { Language } from '@/types';
+import { Language, MainTab } from '@/types';
 import { MathRenderer } from '../MathRenderer';
 
 export type MatrixCategory = 
@@ -40,9 +40,10 @@ export type MatrixCategory =
 
 interface MatrixTabProps {
   language: Language;
+  onNavigateTab?: (tab: MainTab) => void;
 }
 
-export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
+export const MatrixTab: React.FC<MatrixTabProps> = ({ language, onNavigateTab }) => {
   const isKh = language === 'kh';
 
   // Main Sub-Tab Category
@@ -356,6 +357,24 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
               : 'Interactive step-by-step solver for non-equal dimension matrix multiplication, spatial convolution boundary reductions, asymmetric morphology, and affine transformations.'}
           </p>
         </div>
+
+        {onNavigateTab && (
+          <div className="p-3.5 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 flex flex-wrap items-center justify-between gap-3 shadow-inner">
+            <div className="flex items-center gap-2.5 text-xs text-emerald-300">
+              <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className={isKh ? 'khmer-font' : ''}>
+                {isKh ? '💡 ទើបតែចាប់ផ្តើម ឬពិបាកយល់មែនទេ? សាកល្បងរៀនមេរៀនសាមញ្ញ គ្មានពាក្យបច្ចេកទេសពិបាកៗ៖' : '💡 New to matrices or find math formulas overwhelming? Start with our beginner guide:'}
+              </span>
+            </div>
+            <button
+              onClick={() => onNavigateTab('beginner')}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition flex items-center gap-1.5 shadow-md shadow-emerald-500/20"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{isKh ? 'ចូលរៀន 🌱 មូលដ្ឋានគ្រឹះ 101' : 'Open 🌱 Beginner 101'}</span>
+            </button>
+          </div>
+        )}
 
         {/* 4-Step Interactive Learning Guide */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">

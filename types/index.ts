@@ -1,6 +1,6 @@
 export type Language = 'en' | 'kh';
 
-export type MainTab = 'overview' | 'exercises' | 'labs' | 'matrix' | 'exam' | 'python';
+export type MainTab = 'beginner' | 'overview' | 'exercises' | 'labs' | 'matrix' | 'exam' | 'python';
 
 export interface ExerciseStep {
   stepEn: string;

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BookOpen, FlaskConical, GraduationCap, Grid, Palette, Sliders, Binary, Sigma } from 'lucide-react';
+import { BookOpen, FlaskConical, GraduationCap, Grid, Palette, Sliders, Binary, Sigma, Sparkles } from 'lucide-react';
 import { Language, MainTab } from '@/types';
 import { MathRenderer } from '../MathRenderer';
 
@@ -37,6 +37,13 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ language, onNavigateTa
           </p>
 
           <div className="pt-4 flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => onNavigateTab('beginner')}
+              className="px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 transition flex items-center gap-2 ring-1 ring-emerald-400"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-200" />
+              <span>{isKh ? '🌱 មូលដ្ឋានគ្រឹះ 101 (ងាយយល់)' : '🌱 Beginner 101 (Start Here)'}</span>
+            </button>
             <button
               onClick={() => onNavigateTab('exercises')}
               className="px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 transition flex items-center gap-2"
