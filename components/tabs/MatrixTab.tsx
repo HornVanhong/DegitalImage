@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Calculator, 
   Grid, 
@@ -20,7 +20,11 @@ import {
   Minus,
   HelpCircle,
   RotateCw,
-  Scaling,
+  Play,
+  Pause,
+  RotateCcw,
+  FastForward,
+  Info,
   Lightbulb
 } from 'lucide-react';
 import { Language } from '@/types';
@@ -41,11 +45,11 @@ interface MatrixTabProps {
 export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
   const isKh = language === 'kh';
 
-  // Sub-Navigation category
+  // Main Sub-Tab Category
   const [activeCategory, setActiveCategory] = useState<MatrixCategory>('non_equal_calc');
 
   /* ------------------------------------------------------------------------- */
-  /* 1. NON-EQUAL MATRIX MULTIPLICATION STATE (M x K by K x N)                */
+  /* 1. INTERACTIVE MATRIX MULTIPLIER STATE                                     */
   /* ------------------------------------------------------------------------- */
   const [dimM, setDimM] = useState<number>(3); // Rows of A
   const [dimK, setDimK] = useState<number>(4); // Cols of A & Rows of B
@@ -65,9 +69,12 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
   ]);
 
   const [activeNonEqualCell, setActiveNonEqualCell] = useState<{ r: number; c: number }>({ r: 0, c: 0 });
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [playSpeed, setPlaySpeed] = useState<number>(1500); // ms per step
 
-  // Resize Non-Equal Matrices
+  // Resize handler
   const handleResizeNonEqual = (newM: number, newK: number, newN: number) => {
+    setIsPlaying(false);
     setDimM(newM);
     setDimK(newK);
     setDimN(newN);
@@ -84,7 +91,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
     setActiveNonEqualCell({ r: 0, c: 0 });
   };
 
-  // Compute Non-Equal Multiplication
+  // Result computation
   const nonEqualResult = useMemo(() => {
     const res: number[][] = Array.from({ length: dimM }, () => Array(dimN).fill(0));
     const stepDetails: Record<string, { 
@@ -115,7 +122,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
           terms,
           sum,
           formula: 'C_{' + (r+1) + (c+1) + '} = \\sum_{k=1}^{' + dimK + '} A_{' + (r+1) + 'k} \\cdot B_{k' + (c+1) + '} = ' + termStrings.join(' + ') + ' = ' + terms.map(t => t.prod).join(' + ') + ' = ' + sum,
-          explanationKh: 'យកជួរដេកទី ' + (r+1) + ' នៃ Matrix A [' + (nonEqualA[r] ? nonEqualA[r].join(', ') : '') + '] គុណនឹងជួរឈរទី ' + (c+1) + ' នៃ Matrix B [' + nonEqualB.map(row => row[c]).join(', ') + '] (Dot Product) ទទួលបានផលបូក = ' + sum + '។',
+          explanationKh: 'គុណជួរដេកទី ' + (r+1) + ' នៃ Matrix A [' + (nonEqualA[r] ? nonEqualA[r].join(', ') : '') + '] ជាមួយជួរឈរទី ' + (c+1) + ' នៃ Matrix B [' + nonEqualB.map(row => row[c]).join(', ') + '] (Dot Product) ទទួលបានផលបូក = ' + sum + '។',
           explanationEn: 'Multiply Row ' + (r+1) + ' of Matrix A with Column ' + (c+1) + ' of Matrix B (Dot Product): Sum of all ' + dimK + ' products = ' + sum + '.'
         };
       }
@@ -124,7 +131,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
     return { res, stepDetails };
   }, [nonEqualA, nonEqualB, dimM, dimK, dimN]);
 
-  // Edit non-equal cell
+  // Update cell
   const handleUpdateNonEqualCell = (isA: boolean, r: number, c: number, val: number) => {
     const num = isNaN(val) ? 0 : val;
     if (isA) {
@@ -145,12 +152,31 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
     setActiveNonEqualCell({ r: nextR, c: nextC });
   };
 
+  // Auto-Play Timer
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isPlaying) {
+      timer = setInterval(() => {
+        setActiveNonEqualCell((prev) => {
+          const totalCells = dimM * dimN;
+          const currentIdx = prev.r * dimN + prev.c;
+          const nextIdx = (currentIdx + 1) % totalCells;
+          return {
+            r: Math.floor(nextIdx / dimN),
+            c: nextIdx % dimN
+          };
+        });
+      }, playSpeed);
+    }
+    return () => clearInterval(timer);
+  }, [isPlaying, playSpeed, dimM, dimN]);
+
   /* ------------------------------------------------------------------------- */
-  /* 2. UNEQUAL MATRICES THEORY INTERACTIVE STATE (5 LESSONS)                  */
+  /* 2. 5 STEP-BY-STEP MASTERCLASS LESSONS STATE                               */
   /* ------------------------------------------------------------------------- */
   const [selectedTheoryCase, setSelectedTheoryCase] = useState<'mult' | 'conv' | 'morph' | 'add' | 'trans_scalar'>('mult');
 
-  // Case 2: Convolution interactive position
+  // Case 2: Convolution
   const [convPos, setConvPos] = useState<{ r: number; c: number }>({ r: 0, c: 0 });
   const sampleConvImage = [
     [10, 20, 30, 40],
@@ -162,7 +188,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
     [1, 1, 1],
     [1, 2, 1],
     [1, 1, 1]
-  ]; // scale 1/10
+  ];
   
   const activeConvWindow = useMemo(() => {
     const win: number[][] = [];
@@ -180,7 +206,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
     return { win, sum, avg: (sum / 10).toFixed(1) };
   }, [convPos]);
 
-  // Case 3: Morphology interactive toggle
+  // Case 3: Morphology
   const [morphMode, setMorphMode] = useState<'dilation' | 'erosion'>('dilation');
   const sampleBinaryImage = [
     [0, 0, 0, 0, 0],
@@ -201,16 +227,16 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
     [0, 0, 0, 0, 0]
   ];
 
-  // Case 4: Zero padding addition step
+  // Case 4: Zero padding
   const [paddingStep, setPaddingStep] = useState<'unpadded' | 'padded' | 'added'>('padded');
 
-  // Case 5: Transpose & Scalar Scaling State
+  // Case 5: Transpose & Scalar
   const [sampleScalarK, setSampleScalarK] = useState<number>(2);
   const [isTransposed, setIsTransposed] = useState<boolean>(false);
   const sampleBase3x4 = [
-    [1, 2, 3, 4],
-    [5, 6, 7, 8],
-    [9, 10, 11, 12]
+    [20, 40, 60, 80],
+    [100, 120, 140, 160],
+    [180, 200, 220, 240]
   ];
 
   const transposed3x4 = useMemo(() => {
@@ -308,19 +334,63 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      {/* Hero Header Banner */}
-      <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-          <Calculator className="w-3.5 h-3.5" /> Interactive Matrix Masterclass & Step-by-Step Solver
+      {/* Hero Header Banner with UX Workflow Steps */}
+      <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-5 shadow-2xl">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/25 shadow-inner">
+            <Calculator className="w-3.5 h-3.5 text-indigo-400" /> Interactive Matrix Masterclass & Step-by-Step Solver
+          </div>
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            <span>Live Interactive Engine</span>
+          </div>
         </div>
-        <h2 className="text-2xl md:text-3xl font-extrabold text-white">
-          {isKh ? 'មជ្ឈមណ្ឌលប្រមាណវិធី និងមេរៀន Matrix គ្រប់ប្រភេទ (Step-by-Step)' : 'Matrix Masterclass & Visual Step-by-Step Solver'}
-        </h2>
-        <p className={'text-xs md:text-sm text-slate-300 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
-          {isKh
-            ? 'សិក្សា និងអនុវត្តការគណនា Matrix គ្រប់ទម្រង់៖ Matrix មិនស្មើគ្នា (M×K គុណ K×N), 2D Convolution, Morphology SE មិនស៊ីមេទ្រី, Zero-Padding, Transpose និង Scalar Scaling មួយជំហានៗយ៉ាងក្បោះក្បាយ។'
-            : 'Interactive step-by-step solver for non-equal dimension matrix multiplication, spatial convolution boundary reductions, asymmetric morphology, and affine transformations.'}
-        </p>
+
+        <div>
+          <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+            {isKh ? 'មជ្ឈមណ្ឌលប្រមាណវិធី និងមេរៀន Matrix គ្រប់ប្រភេទ (Step-by-Step)' : 'Matrix Masterclass & Visual Step-by-Step Solver'}
+          </h2>
+          <p className={'text-xs md:text-sm text-slate-300 leading-relaxed mt-1 ' + (isKh ? 'khmer-font' : '')}>
+            {isKh
+              ? 'កម្មវិធីបង្រៀន និងគណនា Matrix តាមជំហាននីមួយៗយ៉ាងក្បោះក្បាយ៖ ការគុណ Matrix មិនស្មើគ្នា, 2D Spatial Convolution, Morphology Structuring Elements, Zero-Padding និង Transpose ជាមួយរូបភាព និង KaTeX Formula ច្បាស់ៗ។'
+              : 'Interactive step-by-step solver for non-equal dimension matrix multiplication, spatial convolution boundary reductions, asymmetric morphology, and affine transformations.'}
+          </p>
+        </div>
+
+        {/* 4-Step Interactive Learning Guide */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+          <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-start gap-3 shadow-sm">
+            <div className="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-400 font-black text-xs flex items-center justify-center shrink-0 border border-amber-500/30">1</div>
+            <div className="text-xs">
+              <strong className="text-white block font-bold">{isKh ? 'កំណត់ទំហំ' : 'Set Dimensions'}</strong>
+              <span className="text-slate-400 text-[11px]">{isKh ? 'ជ្រើសរើស (3×4), (2×3) ឬ Presets' : 'Sliders or Presets'}</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-start gap-3 shadow-sm">
+            <div className="w-7 h-7 rounded-xl bg-cyan-500/20 text-cyan-400 font-black text-xs flex items-center justify-center shrink-0 border border-cyan-500/30">2</div>
+            <div className="text-xs">
+              <strong className="text-white block font-bold">{isKh ? 'បញ្ចូលលេខ' : 'Edit Matrix Cells'}</strong>
+              <span className="text-slate-400 text-[11px]">{isKh ? 'កែប្រែទិន្នន័យ A និង B ផ្ទាល់' : 'Interactive Cell Inputs'}</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-start gap-3 shadow-sm">
+            <div className="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center shrink-0 border border-emerald-500/30">3</div>
+            <div className="text-xs">
+              <strong className="text-white block font-bold">{isKh ? 'មើល Dot Product' : 'Step-by-Step Dot'}</strong>
+              <span className="text-slate-400 text-[11px]">{isKh ? 'ចុចក្រឡា ឬ Auto-Play' : 'Row × Col highlight'}</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-start gap-3 shadow-sm">
+            <div className="w-7 h-7 rounded-xl bg-purple-500/20 text-purple-400 font-black text-xs flex items-center justify-center shrink-0 border border-purple-500/30">4</div>
+            <div className="text-xs">
+              <strong className="text-white block font-bold">{isKh ? 'រៀន ៥ មេរៀន' : 'Master 5 Lessons'}</strong>
+              <span className="text-slate-400 text-[11px]">{isKh ? 'Conv, Morph, Pad, Transpose' : 'Comprehensive Guides'}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Navigation Tabs */}
@@ -334,7 +404,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
           )}
         >
           <Calculator className="w-4 h-4 text-amber-400" />
-          <span>{isKh ? '១. កម្មវិធីគណនា Matrix មិនស្មើគ្នា' : '1. Non-Equal Matrix Multiplier'}</span>
+          <span>{isKh ? '១. កម្មវិធីគណនា Matrix មិនស្មើគ្នា (Interactive Solver)' : '1. Interactive Matrix Multiplier'}</span>
         </button>
 
         <button
@@ -346,7 +416,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
           )}
         >
           <BookOpen className="w-4 h-4 text-cyan-400" />
-          <span>{isKh ? '២. មេរៀន Matrix គ្រប់ប្រភេទ (Step-by-Step)' : '2. All Matrix Lessons'}</span>
+          <span>{isKh ? '២. មេរៀន Matrix គ្រប់ប្រភេទ (៥ ជំហានក្បោះក្បាយ)' : '2. 5 Step-by-Step Lessons'}</span>
         </button>
 
         <button
@@ -398,7 +468,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
         </button>
       </div>
 
-      {/* 1. NON-EQUAL MATRIX MULTIPLICATION CALCULATOR */}
+      {/* 1. NON-EQUAL MATRIX MULTIPLICATION CALCULATOR (WITH AUTO-PLAY & PRESETS) */}
       {activeCategory === 'non_equal_calc' && (
         <div className="space-y-6">
           <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
@@ -415,6 +485,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                 </p>
               </div>
 
+              {/* Presets Bar */}
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-bold text-slate-400">{isKh ? 'គំរូទំហំ៖' : 'Presets:'}</span>
                 <button
@@ -460,6 +531,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
               </div>
             </div>
 
+            {/* Dimension Matching Pill Display */}
             <div className="p-3 bg-slate-900/90 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-center gap-4 text-xs font-mono">
               <span className="px-3 py-1 rounded-xl bg-amber-950/60 text-amber-300 border border-amber-700 font-bold">
                 Matrix A: {dimM} × <span className="text-white underline font-black">{dimK}</span>
@@ -474,6 +546,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
               </span>
             </div>
 
+            {/* Dimension Sliders */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 text-xs font-mono">
               <div className="p-3 bg-slate-900/80 rounded-2xl border border-slate-800">
                 <div className="flex justify-between text-amber-300 font-bold mb-1">
@@ -519,11 +592,63 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
             </div>
           </div>
 
-          <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
+          {/* Interactive Calculation Matrix Arena */}
+          <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-300 uppercase font-mono flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  {isKh ? 'ចុចលើក្រឡា C ឬ Auto-Play ដើម្បីមើលការគណនា៖' : 'Interactive Cell Inspector & Stepper:'}
+                </span>
+              </div>
+
+              {/* Playback Controls */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  className={'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ' + (
+                    isPlaying
+                      ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-500/25'
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                  )}
+                >
+                  {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                  <span>{isPlaying ? (isKh ? 'ផ្អាក (Pause)' : 'Pause') : (isKh ? 'ចាក់ស្វ័យប្រវត្ត (Auto-Play)' : 'Auto-Play')}</span>
+                </button>
+
+                <button
+                  onClick={() => stepRelativeNonEqual(-1)}
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs transition"
+                  title="Previous Cell"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => stepRelativeNonEqual(1)}
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs transition"
+                  title="Next Cell"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+
+                <select
+                  value={playSpeed}
+                  onChange={(e) => setPlaySpeed(parseInt(e.target.value))}
+                  className="px-2.5 py-1.5 bg-slate-800 border border-slate-700 text-slate-200 rounded-xl text-xs font-mono font-bold focus:outline-none"
+                >
+                  <option value={2000}>0.5x Speed</option>
+                  <option value={1200}>1.0x Speed</option>
+                  <option value={600}>2.0x Speed</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Matrix Display Arena */}
             <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 overflow-x-auto py-4">
               {/* Matrix A */}
               <div className="flex flex-col items-center">
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2 font-mono flex items-center gap-1">
                   Matrix A ({dimM}×{dimK})
                 </span>
                 <div className="matrix-bracket">
@@ -540,9 +665,9 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                             type="number"
                             value={val}
                             onChange={(e) => handleUpdateNonEqualCell(true, r, c, parseInt(e.target.value))}
-                            className={'h-11 text-center text-xs font-mono font-bold rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 transition ' + (
+                            className={'h-11 text-center text-xs font-mono font-bold rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 transition-all duration-300 ' + (
                               isRowActive
-                                ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-400 font-black shadow-md shadow-amber-500/30'
+                                ? 'bg-amber-500 text-slate-950 ring-4 ring-amber-400/50 font-black shadow-lg shadow-amber-500/40 scale-105'
                                 : 'bg-slate-800 text-slate-200 border border-slate-700 hover:border-slate-600'
                             )}
                           />
@@ -553,13 +678,14 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                 </div>
               </div>
 
+              {/* Multiplication Operator */}
               <div className="text-2xl font-extrabold text-slate-400 flex items-center justify-center pt-6">
                 <X className="w-6 h-6 text-indigo-400" />
               </div>
 
               {/* Matrix B */}
               <div className="flex flex-col items-center">
-                <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2">
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2 font-mono flex items-center gap-1">
                   Matrix B ({dimK}×{dimN})
                 </span>
                 <div className="matrix-bracket">
@@ -576,9 +702,9 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                             type="number"
                             value={val}
                             onChange={(e) => handleUpdateNonEqualCell(false, r, c, parseInt(e.target.value))}
-                            className={'h-11 text-center text-xs font-mono font-bold rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 transition ' + (
+                            className={'h-11 text-center text-xs font-mono font-bold rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all duration-300 ' + (
                               isColActive
-                                ? 'bg-cyan-500 text-slate-950 ring-2 ring-cyan-400 font-black shadow-md shadow-cyan-500/30'
+                                ? 'bg-cyan-500 text-slate-950 ring-4 ring-cyan-400/50 font-black shadow-lg shadow-cyan-500/40 scale-105'
                                 : 'bg-slate-800 text-slate-200 border border-slate-700 hover:border-slate-600'
                             )}
                           />
@@ -589,13 +715,14 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                 </div>
               </div>
 
+              {/* Equals */}
               <div className="text-2xl font-extrabold text-slate-400 flex items-center justify-center pt-6">
                 =
               </div>
 
               {/* Result Matrix C */}
               <div className="flex flex-col items-center">
-                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2 font-mono flex items-center gap-1">
                   Result Matrix C ({dimM}×{dimN})
                 </span>
                 <div className="matrix-bracket">
@@ -609,15 +736,18 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                         return (
                           <button
                             key={'nec-' + r + '-' + c}
-                            onClick={() => setActiveNonEqualCell({ r, c })}
-                            className={'h-11 flex flex-col items-center justify-center rounded-xl font-mono text-xs font-bold transition ' + (
+                            onClick={() => {
+                              setIsPlaying(false);
+                              setActiveNonEqualCell({ r, c });
+                            }}
+                            className={'h-11 flex flex-col items-center justify-center rounded-xl font-mono text-xs font-bold transition-all duration-300 ' + (
                               isActive
-                                ? 'bg-emerald-500 text-slate-950 ring-4 ring-emerald-500/40 scale-105 shadow-lg shadow-emerald-500/30'
+                                ? 'bg-emerald-500 text-slate-950 ring-4 ring-emerald-400/60 scale-110 shadow-xl shadow-emerald-500/50 font-black'
                                 : 'bg-slate-800/90 text-emerald-300 border border-emerald-500/20 hover:bg-slate-700/80'
                             )}
                           >
                             <span>{val}</span>
-                            <span className="text-[8px] opacity-60 font-sans">
+                            <span className="text-[8px] opacity-70 font-sans font-normal">
                               [{r+1},{c+1}]
                             </span>
                           </button>
@@ -629,45 +759,33 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
               </div>
             </div>
 
-            {/* Step Breakdown Card */}
+            {/* Step Breakdown Live Inspector Card */}
             {activeNonEqualInfo && (
               <div className="p-6 bg-slate-950/90 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <span className="text-amber-400 font-bold uppercase tracking-wider text-xs flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4" /> ជំហានគណនាត្រង់ធាតុ C[{activeNonEqualCell.r+1}, {activeNonEqualCell.c+1}] (Row {activeNonEqualCell.r+1} នៃ A · Column {activeNonEqualCell.c+1} នៃ B):
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" /> 
+                    {isKh ? 'ជំហានគណនាត្រង់ធាតុ' : 'Calculation Step for'} C[{activeNonEqualCell.r+1}, {activeNonEqualCell.c+1}] (Row {activeNonEqualCell.r+1} នៃ A · Column {activeNonEqualCell.c+1} នៃ B):
                   </span>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => stepRelativeNonEqual(-1)}
-                      className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1"
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5" /> ថយក្រោយ
-                    </button>
-                    <span className="text-xs font-mono text-slate-400">
-                      ក្រឡា {activeNonEqualCell.r * dimN + activeNonEqualCell.c + 1} / {dimM * dimN}
-                    </span>
-                    <button
-                      onClick={() => stepRelativeNonEqual(1)}
-                      className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition flex items-center gap-1"
-                    >
-                      បន្ទាប់ <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <span className="text-xs font-mono text-slate-400 px-3 py-1 bg-slate-900 rounded-lg border border-slate-800">
+                    ក្រឡាទី {activeNonEqualCell.r * dimN + activeNonEqualCell.c + 1} / {dimM * dimN}
+                  </span>
                 </div>
 
                 <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 text-xs overflow-x-auto">
                   <MathRenderer content={'$$' + activeNonEqualInfo.formula + '$$'} />
                 </div>
 
+                {/* Term Breakdown Pills */}
                 <div className="flex flex-wrap gap-2 text-xs font-mono">
                   {activeNonEqualInfo.terms.map((t, idx) => (
-                    <div key={idx} className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2">
+                    <div key={idx} className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2 shadow-inner">
                       <span className="text-amber-300 font-bold">A[{activeNonEqualCell.r+1},{idx+1}]={t.a}</span>
                       <span className="text-slate-500">×</span>
                       <span className="text-cyan-300 font-bold">B[{idx+1},{activeNonEqualCell.c+1}]={t.b}</span>
                       <span className="text-slate-500">=</span>
-                      <span className="text-emerald-300 font-bold">{t.prod}</span>
+                      <span className="text-emerald-300 font-black">{t.prod}</span>
                     </div>
                   ))}
                 </div>
@@ -681,22 +799,22 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
         </div>
       )}
 
-      {/* 2. UNEQUAL MATRICES COMPREHENSIVE VISUAL GUIDE (5 LESSONS) */}
+      {/* 2. UNEQUAL MATRICES COMPREHENSIVE VISUAL GUIDE (5 STEP-BY-STEP LESSONS) */}
       {activeCategory === 'unequal_theory' && (
         <div className="space-y-6 animate-fadeIn">
           {/* Sub Tab Switcher for 5 Lessons */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 p-1.5 bg-slate-900/90 rounded-2xl border border-slate-800">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 p-2 bg-slate-900/90 rounded-2xl border border-slate-800 shadow-lg">
             <button
               onClick={() => setSelectedTheoryCase('mult')}
-              className={'p-3 rounded-xl text-left transition flex flex-col gap-1 ' + (
+              className={'p-3.5 rounded-xl text-left transition-all duration-200 flex flex-col gap-1 ' + (
                 selectedTheoryCase === 'mult'
-                  ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg shadow-amber-500/20 border border-amber-400/40'
+                  ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-lg shadow-amber-500/25 border border-amber-400/40 ring-1 ring-amber-400/30'
                   : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
               )}
             >
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-mono">មេរៀនទី ១</span>
-                <Calculator className="w-3.5 h-3.5" />
+                <Calculator className="w-4 h-4" />
               </div>
               <span className="text-xs font-bold leading-tight">
                 {isKh ? 'គុណ Matrix មិនស្មើគ្នា' : 'Multiplication (M×K × K×N)'}
@@ -705,15 +823,15 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
             <button
               onClick={() => setSelectedTheoryCase('conv')}
-              className={'p-3 rounded-xl text-left transition flex flex-col gap-1 ' + (
+              className={'p-3.5 rounded-xl text-left transition-all duration-200 flex flex-col gap-1 ' + (
                 selectedTheoryCase === 'conv'
-                  ? 'bg-gradient-to-r from-cyan-600 to-cyan-700 text-white shadow-lg shadow-cyan-500/20 border border-cyan-400/40'
+                  ? 'bg-gradient-to-r from-cyan-600 to-cyan-700 text-white shadow-lg shadow-cyan-500/25 border border-cyan-400/40 ring-1 ring-cyan-400/30'
                   : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
               )}
             >
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-mono">មេរៀនទី ២</span>
-                <Cpu className="w-3.5 h-3.5" />
+                <Cpu className="w-4 h-4" />
               </div>
               <span className="text-xs font-bold leading-tight">
                 {isKh ? '2D Spatial Convolution' : '2D Spatial Convolution'}
@@ -722,15 +840,15 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
             <button
               onClick={() => setSelectedTheoryCase('morph')}
-              className={'p-3 rounded-xl text-left transition flex flex-col gap-1 ' + (
+              className={'p-3.5 rounded-xl text-left transition-all duration-200 flex flex-col gap-1 ' + (
                 selectedTheoryCase === 'morph'
-                  ? 'bg-gradient-to-r from-pink-600 to-pink-700 text-white shadow-lg shadow-pink-500/20 border border-pink-400/40'
+                  ? 'bg-gradient-to-r from-pink-600 to-pink-700 text-white shadow-lg shadow-pink-500/25 border border-pink-400/40 ring-1 ring-pink-400/30'
                   : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
               )}
             >
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-mono">មេរៀនទី ៣</span>
-                <Layers className="w-3.5 h-3.5" />
+                <Layers className="w-4 h-4" />
               </div>
               <span className="text-xs font-bold leading-tight">
                 {isKh ? 'Morphology (Dilation/Erosion)' : 'Binary Morphology SE'}
@@ -739,15 +857,15 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
             <button
               onClick={() => setSelectedTheoryCase('add')}
-              className={'p-3 rounded-xl text-left transition flex flex-col gap-1 ' + (
+              className={'p-3.5 rounded-xl text-left transition-all duration-200 flex flex-col gap-1 ' + (
                 selectedTheoryCase === 'add'
-                  ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg shadow-emerald-500/20 border border-emerald-400/40'
+                  ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg shadow-emerald-500/25 border border-emerald-400/40 ring-1 ring-emerald-400/30'
                   : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
               )}
             >
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-mono">មេរៀនទី ៤</span>
-                <Grid className="w-3.5 h-3.5" />
+                <Grid className="w-4 h-4" />
               </div>
               <span className="text-xs font-bold leading-tight">
                 {isKh ? 'បូកដក Zero-Padding' : 'Zero-Padding Addition'}
@@ -756,15 +874,15 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
             <button
               onClick={() => setSelectedTheoryCase('trans_scalar')}
-              className={'p-3 rounded-xl text-left transition flex flex-col gap-1 ' + (
+              className={'p-3.5 rounded-xl text-left transition-all duration-200 flex flex-col gap-1 ' + (
                 selectedTheoryCase === 'trans_scalar'
-                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-500/20 border border-purple-400/40'
+                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-500/25 border border-purple-400/40 ring-1 ring-purple-400/30'
                   : 'bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
               )}
             >
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider opacity-80 font-mono">មេរៀនទី ៥</span>
-                <RotateCw className="w-3.5 h-3.5" />
+                <RotateCw className="w-4 h-4" />
               </div>
               <span className="text-xs font-bold leading-tight">
                 {isKh ? 'Transpose & Scalar' : 'Transpose & Scaling'}
@@ -774,7 +892,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
           {/* LESSON 1: MULTIPLICATION */}
           {selectedTheoryCase === 'mult' && (
-            <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
+            <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20 mb-2">
@@ -837,7 +955,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
           {/* LESSON 2: CONVOLUTION */}
           {selectedTheoryCase === 'conv' && (
-            <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
+            <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 mb-2">
@@ -868,9 +986,9 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                       <button
                         key={pos.r + '-' + pos.c}
                         onClick={() => setConvPos({ r: pos.r, c: pos.c })}
-                        className={'px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition ' + (
+                        className={'px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all duration-200 ' + (
                           convPos.r === pos.r && convPos.c === pos.c
-                            ? 'bg-cyan-500 text-slate-950 ring-2 ring-cyan-400 font-black shadow-md shadow-cyan-500/20'
+                            ? 'bg-cyan-500 text-slate-950 ring-4 ring-cyan-400/40 font-black shadow-lg shadow-cyan-500/30 scale-105'
                             : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                         )}
                       >
@@ -895,9 +1013,9 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                           return (
                             <div
                               key={'cimg-' + r + '-' + c}
-                              className={'w-12 h-12 flex items-center justify-center font-mono text-xs font-bold rounded-xl transition ' + (
+                              className={'w-12 h-12 flex items-center justify-center font-mono text-xs font-bold rounded-xl transition-all duration-300 ' + (
                                 isInKernel
-                                  ? 'bg-cyan-500 text-slate-950 ring-2 ring-cyan-400 font-black scale-105 shadow-md shadow-cyan-500/30'
+                                  ? 'bg-cyan-500 text-slate-950 ring-2 ring-cyan-400 font-black scale-105 shadow-md shadow-cyan-500/40'
                                   : 'bg-slate-800/80 text-slate-400'
                               )}
                             >
@@ -927,9 +1045,9 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                           return (
                             <div
                               key={'cout-' + r + '-' + c}
-                              className={'w-16 h-16 flex flex-col items-center justify-center font-mono text-sm font-bold rounded-xl transition ' + (
+                              className={'w-16 h-16 flex flex-col items-center justify-center font-mono text-sm font-bold rounded-xl transition-all duration-300 ' + (
                                 isActive
-                                  ? 'bg-emerald-500 text-slate-950 ring-4 ring-emerald-500/40 scale-105 shadow-lg shadow-emerald-500/30'
+                                  ? 'bg-emerald-500 text-slate-950 ring-4 ring-emerald-400/60 scale-105 shadow-xl shadow-emerald-500/40 font-black'
                                   : 'bg-slate-800 text-slate-400'
                               )}
                             >
@@ -952,7 +1070,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
           {/* LESSON 3: MORPHOLOGY */}
           {selectedTheoryCase === 'morph' && (
-            <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
+            <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-pink-500/10 text-pink-300 border border-pink-500/20 mb-2">
@@ -965,9 +1083,9 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setMorphMode('dilation')}
-                    className={'px-3 py-1.5 rounded-xl text-xs font-bold transition ' + (
+                    className={'px-3.5 py-1.5 rounded-xl text-xs font-bold transition ' + (
                       morphMode === 'dilation'
-                        ? 'bg-pink-600 text-white shadow-md shadow-pink-500/20'
+                        ? 'bg-pink-600 text-white shadow-md shadow-pink-500/20 ring-1 ring-pink-400/30'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     )}
                   >
@@ -975,9 +1093,9 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                   </button>
                   <button
                     onClick={() => setMorphMode('erosion')}
-                    className={'px-3 py-1.5 rounded-xl text-xs font-bold transition ' + (
+                    className={'px-3.5 py-1.5 rounded-xl text-xs font-bold transition ' + (
                       morphMode === 'erosion'
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20 ring-1 ring-indigo-400/30'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     )}
                   >
@@ -1040,7 +1158,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                       row.map((val, c) => (
                         <div
                           key={'mres-' + r + '-' + c}
-                          className={'w-10 h-10 flex items-center justify-center font-mono text-xs font-bold rounded-lg transition ' + (
+                          className={'w-10 h-10 flex items-center justify-center font-mono text-xs font-bold rounded-lg transition-all duration-300 ' + (
                             val === 1
                               ? morphMode === 'dilation'
                                 ? 'bg-pink-500 text-slate-950 font-black shadow-md shadow-pink-500/20'
@@ -1070,7 +1188,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
 
           {/* LESSON 4: ADDITION & ZERO PADDING */}
           {selectedTheoryCase === 'add' && (
-            <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
+            <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 mb-2">
@@ -1085,7 +1203,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                     onClick={() => setPaddingStep('unpadded')}
                     className={'px-3 py-1.5 rounded-xl text-xs font-bold transition ' + (
                       paddingStep === 'unpadded'
-                        ? 'bg-rose-600 text-white'
+                        ? 'bg-rose-600 text-white shadow-md shadow-rose-500/20'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     )}
                   >
@@ -1095,7 +1213,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                     onClick={() => setPaddingStep('padded')}
                     className={'px-3 py-1.5 rounded-xl text-xs font-bold transition ' + (
                       paddingStep === 'padded'
-                        ? 'bg-amber-600 text-white'
+                        ? 'bg-amber-600 text-white shadow-md shadow-amber-500/20'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     )}
                   >
@@ -1105,7 +1223,7 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                     onClick={() => setPaddingStep('added')}
                     className={'px-3 py-1.5 rounded-xl text-xs font-bold transition ' + (
                       paddingStep === 'added'
-                        ? 'bg-emerald-600 text-white'
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     )}
                   >
@@ -1148,9 +1266,9 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                               return (
                                 <div
                                   key={'pap-' + r + '-' + c}
-                                  className={'h-11 flex items-center justify-center rounded-xl font-bold font-mono text-xs transition ' + (
+                                  className={'h-11 flex items-center justify-center rounded-xl font-bold font-mono text-xs transition-all duration-300 ' + (
                                     isPadding
-                                      ? 'bg-emerald-500/20 border-2 border-dashed border-emerald-400 text-emerald-300'
+                                      ? 'bg-emerald-500/20 border-2 border-dashed border-emerald-400 text-emerald-300 font-black'
                                       : 'bg-amber-500/20 border border-amber-500/40 text-amber-300'
                                   )}
                                 >
@@ -1227,9 +1345,9 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
             </div>
           )}
 
-          {/* LESSON 5: TRANSPOSE & SCALAR MULTIPLICATION */}
+          {/* LESSON 5: TRANSPOSE & SCALAR MULTIPLICATION WITH IMAGE PIXEL INTENSITY PREVIEW */}
           {selectedTheoryCase === 'trans_scalar' && (
-            <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-xl">
+            <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-500/10 text-purple-300 border border-purple-500/20 mb-2">
@@ -1242,9 +1360,9 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setIsTransposed(!isTransposed)}
-                    className={'px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ' + (
+                    className={'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ' + (
                       isTransposed
-                        ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20'
+                        ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20 ring-1 ring-purple-400/30'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     )}
                   >
@@ -1254,57 +1372,71 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language }) => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center p-6 bg-slate-950 rounded-3xl border border-slate-800">
-                {/* Visual Matrix Display */}
+                {/* Visual Matrix Display with Grayscale Pixel Colors */}
                 <div className="lg:col-span-6 flex flex-col items-center space-y-3">
-                  <span className="text-xs font-bold text-purple-400 font-mono">
-                    {isTransposed ? 'Transposed Matrix A^T (4×3)' : 'Original Matrix A (3×4)'}
+                  <span className="text-xs font-bold text-purple-400 font-mono flex items-center gap-1.5">
+                    <Eye className="w-3.5 h-3.5" />
+                    {isTransposed ? 'Transposed Matrix A^T (4×3 Pixel Patch)' : 'Original Matrix A (3×4 Pixel Patch)'}
                   </span>
                   <div className="matrix-bracket">
                     <div
                       className="grid gap-2"
-                      style={{ gridTemplateColumns: 'repeat(' + (isTransposed ? 3 : 4) + ', 44px)' }}
+                      style={{ gridTemplateColumns: 'repeat(' + (isTransposed ? 3 : 4) + ', 48px)' }}
                     >
                       {(isTransposed ? transposed3x4 : sampleBase3x4).map((row, r) =>
-                        row.map((val, c) => (
-                          <div
-                            key={'ts-' + r + '-' + c}
-                            className="h-11 flex items-center justify-center font-mono text-xs font-bold rounded-xl bg-slate-800 text-purple-300 border border-purple-500/30"
-                          >
-                            {val * sampleScalarK}
-                          </div>
-                        ))
+                        row.map((val, c) => {
+                          const scaledVal = Math.min(255, val * sampleScalarK);
+                          return (
+                            <div
+                              key={'ts-' + r + '-' + c}
+                              style={{ backgroundColor: 'rgb(' + scaledVal + ',' + scaledVal + ',' + scaledVal + ')' }}
+                              className={'h-12 flex flex-col items-center justify-center font-mono text-xs font-bold rounded-xl border border-slate-700 transition-all duration-300 shadow-md ' + (
+                                scaledVal > 128 ? 'text-slate-950' : 'text-slate-100'
+                              )}
+                            >
+                              <span>{scaledVal}</span>
+                              <span className="text-[8px] opacity-70">[{r+1},{c+1}]</span>
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   </div>
+                  <span className="text-[11px] text-slate-400 font-mono text-center">
+                    💡 ផ្ទៃក្រឡាបង្ហាញកម្រិតពន្លឺ Grayscale ជាក់ស្តែងតាមតម្លៃ Pixel Intensity
+                  </span>
                 </div>
 
                 {/* Scalar Scaling Controls */}
                 <div className="lg:col-span-6 space-y-4">
-                  <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="p-5 bg-slate-900 rounded-2xl border border-slate-800 space-y-3 shadow-inner">
                     <div className="flex justify-between items-center text-xs font-mono">
-                      <span className="text-purple-300 font-bold">Scalar Multiplier (k): {sampleScalarK}x</span>
-                      <span className="text-slate-400">Brightness / Contrast Factor</span>
+                      <span className="text-purple-300 font-bold flex items-center gap-1.5">
+                        <Sliders className="w-4 h-4 text-purple-400" />
+                        Scalar Multiplier (k): {sampleScalarK}x
+                      </span>
+                      <span className="text-emerald-400 font-bold">Brightness Gain</span>
                     </div>
                     <input
                       type="range"
                       min={1}
-                      max={5}
+                      max={4}
                       step={1}
                       value={sampleScalarK}
                       onChange={(e) => setSampleScalarK(parseInt(e.target.value))}
                       className="w-full accent-purple-500 bg-slate-800 h-2 rounded-lg"
                     />
-                    <p className={'text-[11px] text-slate-400 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
+                    <p className={'text-xs text-slate-300 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
                       {isKh
-                        ? 'ក្នុង DIP ការគុណ Scalar ($k \cdot A$) គឺយកគ្រប់កោសិកាគុណនឹង $k$ ដើម្បីបង្កើនពន្លឺ ឬកម្រិត Contrast នៃរូបភាព។'
-                        : 'In Digital Image Processing, scalar multiplication scales all pixel intensities linearly to adjust gain or contrast.'}
+                        ? 'ក្នុង DIP ការគុណ Scalar ($k \cdot A$) គឺយកគ្រប់កោសិកាគុណនឹង $k$ ដើម្បីបង្កើនកម្រិតពន្លឺ (Brightness) ឬ Contrast នៃរូបភាព។ ពេលអ្នកទាញ Slider ក្រឡានឹងភ្លឺឡើងភ្លាមៗ!'
+                        : 'In Digital Image Processing, scalar multiplication scales all pixel intensities linearly to adjust gain or contrast. The tiles above demonstrate actual grayscale intensity adjustments!'}
                     </p>
                   </div>
 
                   <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 text-xs">
                     <MathRenderer
                       content={
-                        '$$A = \\begin{bmatrix} 1 & 2 & 3 & 4 \\\\ 5 & 6 & 7 & 8 \\\\ 9 & 10 & 11 & 12 \\end{bmatrix}_{3\\times4} \\implies A^T = \\begin{bmatrix} 1 & 5 & 9 \\\\ 2 & 6 & 10 \\\\ 3 & 7 & 11 \\\\ 4 & 8 & 12 \\end{bmatrix}_{4\\times3}$$'
+                        '$$A = \\begin{bmatrix} 20 & 40 & 60 & 80 \\\\ 100 & 120 & 140 & 160 \\\\ 180 & 200 & 220 & 240 \\end{bmatrix}_{3\\times4} \\implies A^T = \\begin{bmatrix} 20 & 100 & 180 \\\\ 40 & 120 & 200 \\\\ 60 & 140 & 220 \\\\ 80 & 160 & 240 \\end{bmatrix}_{4\\times3}$$'
                       }
                     />
                   </div>
