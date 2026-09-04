@@ -2,16 +2,18 @@
 
 import React, { useState } from 'react';
 import { FlaskConical, Grid, Palette, Binary } from 'lucide-react';
-import { Language } from '@/types';
+import { Language, MainTab } from '@/types';
 import { SpatialFilterLab } from './labs/SpatialFilterLab';
 import { ColorLab } from './labs/ColorLab';
 import { MorphologyLab } from './labs/MorphologyLab';
+import { LearningPathFooter } from '../LearningPathFooter';
 
 interface LabsTabProps {
   language: Language;
+  onNavigateTab: (tab: MainTab) => void;
 }
 
-export const LabsTab: React.FC<LabsTabProps> = ({ language }) => {
+export const LabsTab: React.FC<LabsTabProps> = ({ language, onNavigateTab }) => {
   const isKh = language === 'kh';
   const [activeLab, setActiveLab] = useState<'spatial' | 'color' | 'morphology'>('spatial');
 
@@ -72,6 +74,8 @@ export const LabsTab: React.FC<LabsTabProps> = ({ language }) => {
       {activeLab === 'spatial' && <SpatialFilterLab language={language} />}
       {activeLab === 'color' && <ColorLab language={language} />}
       {activeLab === 'morphology' && <MorphologyLab language={language} />}
+
+      <LearningPathFooter currentTab="labs" language={language} onNavigateTab={onNavigateTab} />
     </div>
   );
 };

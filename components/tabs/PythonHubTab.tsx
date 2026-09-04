@@ -2,13 +2,15 @@
 
 import React, { useState } from 'react';
 import { Code2, Copy, Check, Terminal } from 'lucide-react';
-import { Language } from '@/types';
+import { Language, MainTab } from '@/types';
+import { LearningPathFooter } from '../LearningPathFooter';
 
 interface PythonHubTabProps {
   language: Language;
+  onNavigateTab: (tab: MainTab) => void;
 }
 
-export const PythonHubTab: React.FC<PythonHubTabProps> = ({ language }) => {
+export const PythonHubTab: React.FC<PythonHubTabProps> = ({ language, onNavigateTab }) => {
   const isKh = language === 'kh';
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -203,6 +205,8 @@ cv2.waitKey(0)`
           </div>
         ))}
       </div>
+
+      <LearningPathFooter currentTab="python" language={language} onNavigateTab={onNavigateTab} />
     </div>
   );
 };

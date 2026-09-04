@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Language, MainTab } from '@/types';
 import { MathRenderer } from '../MathRenderer';
+import { LearningPathFooter } from '../LearningPathFooter';
 
 interface BeginnerTabProps {
   language: Language;
@@ -749,6 +750,8 @@ export const BeginnerTab: React.FC<BeginnerTabProps> = ({ language, onNavigateTa
           </div>
         </div>
       )}
+
+      <LearningPathFooter currentTab="beginner" language={language} onNavigateTab={onNavigateTab} />
     </div>
   );
 };

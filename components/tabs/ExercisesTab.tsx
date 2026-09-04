@@ -1,22 +1,58 @@
 'use client';
 
-import React, { useState } from 'react';
-import { HelpCircle, FlaskConical, Code2, Copy, Check } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { HelpCircle, FlaskConical, Code2, Copy, Check, CheckCircle2, Circle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Language, MainTab, Exercise } from '@/types';
 import { EXERCISES_DATA } from '@/data/exercisesData';
 import { MathRenderer } from '../MathRenderer';
+import { LearningPathFooter } from '../LearningPathFooter';
 
 interface ExercisesTabProps {
   language: Language;
   onNavigateTab: (tab: MainTab) => void;
 }
 
+const PROGRESS_KEY = 'dip_completed_exercises';
+
 export const ExercisesTab: React.FC<ExercisesTabProps> = ({ language, onNavigateTab }) => {
   const [selectedId, setSelectedId] = useState<number>(1);
   const [copied, setCopied] = useState<boolean>(false);
+  const [completedIds, setCompletedIds] = useState<number[]>([]);
 
   const isKh = language === 'kh';
   const activeEx: Exercise = EXERCISES_DATA.find((e) => e.id === selectedId) || EXERCISES_DATA[0];
+  const activeIndex = EXERCISES_DATA.findIndex((e) => e.id === activeEx.id);
+  const isCompleted = completedIds.includes(activeEx.id);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(PROGRESS_KEY);
+      if (saved) setCompletedIds(JSON.parse(saved));
+    } catch {
+      /* localStorage unavailable, progress just won't persist */
+    }
+  }, []);
+
+  const persist = (ids: number[]) => {
+    setCompletedIds(ids);
+    try {
+      window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(ids));
+    } catch {
+      /* ignore write failures (e.g. private browsing) */
+    }
+  };
+
+  const toggleCompleted = (id: number) => {
+    persist(completedIds.includes(id) ? completedIds.filter((c) => c !== id) : [...completedIds, id]);
+  };
+
+  const goToOffset = (offset: number) => {
+    const nextIdx = activeIndex + offset;
+    if (nextIdx >= 0 && nextIdx < EXERCISES_DATA.length) {
+      setSelectedId(EXERCISES_DATA[nextIdx].id);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   const handleCopyCode = () => {
     if (activeEx.codeSnippet) {
@@ -27,21 +63,36 @@ export const ExercisesTab: React.FC<ExercisesTabProps> = ({ language, onNavigate
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fadeIn">
-      
+    <div className="space-y-6 animate-fadeIn">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
       <div className="lg:col-span-4 space-y-4">
         <div className="glass-panel p-4 rounded-2xl border border-slate-800 shadow-lg">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-            {isKh ? 'បញ្ជីលំហាត់ទាំង ៨ (Exercises List)' : 'Course Exercises (1 to 8)'}
-          </h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              {isKh ? 'បញ្ជីលំហាត់ទាំង ៨ (Exercises List)' : 'Course Exercises (1 to 8)'}
+            </h3>
+            <span className="text-[11px] font-mono font-bold text-emerald-400 shrink-0">
+              {completedIds.length}/{EXERCISES_DATA.length}
+            </span>
+          </div>
+
+          <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden mb-4">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-300"
+              style={{ width: `${(completedIds.length / EXERCISES_DATA.length) * 100}%` }}
+            />
+          </div>
 
           <div className="space-y-2">
             {EXERCISES_DATA.map((ex) => {
               const isSelected = ex.id === activeEx.id;
+              const isDone = completedIds.includes(ex.id);
               return (
                 <button
                   key={ex.id}
                   onClick={() => setSelectedId(ex.id)}
+                  aria-current={isSelected ? 'true' : undefined}
                   className={`w-full text-left p-3 rounded-xl transition flex items-start gap-3 border ${
                     isSelected
                       ? 'bg-indigo-600/20 border-indigo-500 text-white ring-1 ring-indigo-500/30'
@@ -55,10 +106,11 @@ export const ExercisesTab: React.FC<ExercisesTabProps> = ({ language, onNavigate
                   >
                     {ex.id}
                   </span>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="text-xs font-bold truncate">{isKh ? ex.titleKh : ex.titleEn}</div>
                     <span className="text-[10px] text-slate-400 font-mono">{ex.topic}</span>
                   </div>
+                  {isDone && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />}
                 </button>
               );
             })}
@@ -83,10 +135,27 @@ export const ExercisesTab: React.FC<ExercisesTabProps> = ({ language, onNavigate
         
         <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 shadow-xl">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase bg-indigo-950 text-indigo-300 border border-indigo-800">
-              {activeEx.topic}
-            </span>
-            <span className="text-xs font-mono text-slate-400">Difficulty: {activeEx.difficulty}</span>
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase bg-indigo-950 text-indigo-300 border border-indigo-800">
+                {activeEx.topic}
+              </span>
+              <span className="text-xs font-mono text-slate-400">Difficulty: {activeEx.difficulty}</span>
+            </div>
+            <button
+              onClick={() => toggleCompleted(activeEx.id)}
+              className={`text-xs font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 transition ${
+                isCompleted
+                  ? 'bg-emerald-600/20 border-emerald-600 text-emerald-300'
+                  : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-600'
+              }`}
+            >
+              {isCompleted ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Circle className="w-3.5 h-3.5" />}
+              <span>
+                {isCompleted
+                  ? isKh ? 'បានបញ្ចប់ ✓' : 'Completed'
+                  : isKh ? 'សម្គាល់ថាបានធ្វើរួច' : 'Mark as done'}
+              </span>
+            </button>
           </div>
 
           <h2 className="text-2xl font-extrabold text-white">
@@ -184,7 +253,39 @@ export const ExercisesTab: React.FC<ExercisesTabProps> = ({ language, onNavigate
             )}
           </div>
         )}
+
+
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <button
+            onClick={() => goToOffset(-1)}
+            disabled={activeIndex === 0}
+            className={`px-4 py-2.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1.5 ${
+              activeIndex === 0 ? 'opacity-40 pointer-events-none' : ''
+            }`}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>{isKh ? 'លំហាត់មុន' : 'Previous Exercise'}</span>
+          </button>
+
+          <span className="text-xs font-mono text-slate-500 hidden sm:inline">
+            {activeIndex + 1} / {EXERCISES_DATA.length}
+          </span>
+
+          <button
+            onClick={() => goToOffset(1)}
+            disabled={activeIndex === EXERCISES_DATA.length - 1}
+            className={`px-4 py-2.5 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition flex items-center gap-1.5 ${
+              activeIndex === EXERCISES_DATA.length - 1 ? 'opacity-40 pointer-events-none' : ''
+            }`}
+          >
+            <span>{isKh ? 'លំហាត់បន្ទាប់' : 'Next Exercise'}</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+      </div>
+
+      <LearningPathFooter currentTab="exercises" language={language} onNavigateTab={onNavigateTab} />
     </div>
   );
 };

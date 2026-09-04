@@ -18,6 +18,52 @@ html, body {
   min-height: 100vh;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Keyboard accessibility: visible focus ring on every interactive element,
+   without adding a distracting ring on mouse/touch clicks. */
+a:focus-visible,
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 1rem;
+  z-index: 100;
+  background: #4f46e5;
+  color: #fff;
+  padding: 0.65rem 1.1rem;
+  border-radius: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: top 0.15s ease-out;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
 .khmer-font {
   font-family: var(--font-khmer);
   line-height: 1.65;

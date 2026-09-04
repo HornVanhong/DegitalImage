@@ -3,14 +3,16 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
 import { GraduationCap, Play, RotateCcw, Award, AlertCircle, CheckCircle2, ChevronRight, ChevronLeft, Lightbulb, CheckSquare } from 'lucide-react';
-import { Language, QuizQuestion } from '@/types';
+import { Language, MainTab, QuizQuestion } from '@/types';
 import { MathRenderer } from '../MathRenderer';
+import { LearningPathFooter } from '../LearningPathFooter';
 
 interface ExamQuizTabProps {
   language: Language;
+  onNavigateTab: (tab: MainTab) => void;
 }
 
-export const ExamQuizTab: React.FC<ExamQuizTabProps> = ({ language }) => {
+export const ExamQuizTab: React.FC<ExamQuizTabProps> = ({ language, onNavigateTab }) => {
   const isKh = language === 'kh';
 
   const [topicFilter, setTopicFilter] = useState<'all' | 'spatial' | 'color' | 'morphology'>('all');
@@ -310,6 +312,10 @@ $$S = 1 - \\frac{3}{R_{\\text{norm}} + G_{\\text{norm}} + B_{\\text{norm}}}[\\mi
           <p className={`text-xs text-slate-400 max-w-md mx-auto ${isKh ? 'khmer-font' : ''}`}>
             {isKh ? 'ចុចប៊ូតុង "ចាប់ផ្តើមប្រឡងថ្មី" ខាងលើ ដើម្បីបង្កើតសំណួរប្រឡងចៃដន្យ។' : 'Click "Start Practice Exam" above to generate a new custom test set.'}
           </p>
+
+          <div className="pt-4 max-w-md mx-auto text-left">
+            <LearningPathFooter currentTab="exam" language={language} onNavigateTab={onNavigateTab} />
+          </div>
         </div>
       ) : isSubmitted ? (
         
@@ -413,9 +419,11 @@ $$S = 1 - \\frac{3}{R_{\\text{norm}} + G_{\\text{norm}} + B_{\\text{norm}}}[\\mi
               );
             })}
           </div>
+
+          <LearningPathFooter currentTab="exam" language={language} onNavigateTab={onNavigateTab} />
         </div>
       ) : (
-        
+
         <div className="glass-panel p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

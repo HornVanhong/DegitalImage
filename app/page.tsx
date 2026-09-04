@@ -9,6 +9,7 @@ import { MatrixTab } from '@/components/tabs/MatrixTab';
 import { ExamQuizTab } from '@/components/tabs/ExamQuizTab';
 import { PythonHubTab } from '@/components/tabs/PythonHubTab';
 import { BeginnerTab } from '@/components/tabs/BeginnerTab';
+import { ScrollToTop } from '@/components/ScrollToTop';
 import { Language, MainTab } from '@/types';
 
 export default function Home() {
@@ -30,7 +31,7 @@ export default function Home() {
       />
 
       {/* Main Content Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {currentTab === 'beginner' && (
           <BeginnerTab language={language} onNavigateTab={setCurrentTab} />
         )}
@@ -44,13 +45,13 @@ export default function Home() {
           <ExercisesTab language={language} onNavigateTab={setCurrentTab} />
         )}
         {currentTab === 'labs' && (
-          <LabsTab language={language} />
+          <LabsTab language={language} onNavigateTab={setCurrentTab} />
         )}
         {currentTab === 'exam' && (
-          <ExamQuizTab language={language} />
+          <ExamQuizTab language={language} onNavigateTab={setCurrentTab} />
         )}
         {currentTab === 'python' && (
-          <PythonHubTab language={language} />
+          <PythonHubTab language={language} onNavigateTab={setCurrentTab} />
         )}
       </main>
 
@@ -67,6 +68,8 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      <ScrollToTop />
     </div>
   );
 }

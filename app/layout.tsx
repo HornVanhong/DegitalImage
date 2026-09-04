@@ -14,6 +14,9 @@ export default function RootLayout({
   return (
     <html lang="km" className="dark">
       <body className="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
         {children}
       </body>
     </html>

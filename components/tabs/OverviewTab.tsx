@@ -4,6 +4,7 @@ import React from 'react';
 import { BookOpen, FlaskConical, GraduationCap, Grid, Palette, Sliders, Binary, Sigma, Sparkles } from 'lucide-react';
 import { Language, MainTab } from '@/types';
 import { MathRenderer } from '../MathRenderer';
+import { LearningPathFooter } from '../LearningPathFooter';
 
 interface OverviewTabProps {
   language: Language;
@@ -227,6 +228,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ language, onNavigateTa
           </div>
         </div>
       </div>
+
+      <LearningPathFooter currentTab="overview" language={language} onNavigateTab={onNavigateTab} />
     </div>
   );
 };

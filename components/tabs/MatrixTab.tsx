@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { Language, MainTab } from '@/types';
 import { MathRenderer } from '../MathRenderer';
+import { LearningPathFooter } from '../LearningPathFooter';
 
 export type MatrixCategory = 
   | 'non_equal_calc' 
@@ -1413,6 +1414,71 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language, onNavigateTab })
                   </div>
                 </div>
               </div>
+
+              {/* Third technique: adding a much smaller matrix into a much larger one,
+                  shown two ways — full zero-padding vs. localized sub-matrix extraction. */}
+              <div className="p-6 bg-slate-950/80 rounded-3xl border border-slate-800 space-y-5">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                  <h4 className="text-sm font-bold text-white">
+                    {isKh ? 'វិធីទី ៣៖ ការបូក Matrix ខុសទំហំយ៉ាងខ្លាំង (4×5 + 2×2)' : 'Method 3: Adding a Much Smaller Matrix (4×5 + 2×2)'}
+                  </h4>
+                </div>
+                <p className={'text-xs text-slate-300 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
+                  {isKh
+                    ? 'ពេលខ្លះម៉ាទ្រីសមួយតូចជាងគេច្រើន (ឧ. Patch ឬ Watermark 2×2) ត្រូវបូកចូលទៅក្នុងជ្រុងលើឆ្វេងនៃរូបភាពធំ (4×5)។ មានវិធីពីរយ៉ាងសម្រាប់ធ្វើដូច្នេះ ហើយវិធីទាំងពីរឱ្យលទ្ធផលដូចគ្នានៅជ្រុងលើឆ្វេង។'
+                    : 'Sometimes a much smaller matrix (e.g. a 2×2 patch or watermark) needs to be added into the top-left corner of a larger 4×5 image. There are two ways to do this, and both give the same values in that corner.'}
+                </p>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Method A: Zero Padding */}
+                  <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-3">
+                    <span className="text-xs font-bold text-emerald-400 font-mono flex items-center gap-1.5">
+                      <Grid className="w-3.5 h-3.5" />
+                      {isKh ? '១. Zero-Padding៖ ពង្រីក B ទៅ 4×5' : '1. Zero-Padding: Expand B to 4×5'}
+                    </span>
+                    <p className={'text-[11px] text-slate-400 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
+                      {isKh
+                        ? 'បង្កើត Matrix B ថ្មីទំហំ 4×5 ដោយរក្សា B ដើមទុកនៅជ្រុងលើឆ្វេង ហើយបំពេញលេខ ០ ទីនៅសល់ រួចបូក A + B_padded ធាតុតាមទីតាំង។'
+                        : 'Build a new 4×5 matrix that keeps the original B in the top-left corner and fills every other spot with 0, then add A + B_padded element-wise.'}
+                    </p>
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px] overflow-x-auto">
+                      <MathRenderer content={"$$A_{4\\times5} + B_{padded(4\\times5)} = \\begin{pmatrix} 1 & 2 & 3 & 4 & 5 \\\\ 2 & 1 & 0 & 3 & 1 \\\\ 4 & 1 & 2 & 1 & 0 \\\\ 0 & 3 & 1 & 2 & 2 \\end{pmatrix} + \\begin{pmatrix} \\color{#34d399}{10} & \\color{#34d399}{20} & 0 & 0 & 0 \\\\ \\color{#34d399}{30} & \\color{#34d399}{40} & 0 & 0 & 0 \\\\ 0 & 0 & 0 & 0 & 0 \\\\ 0 & 0 & 0 & 0 & 0 \\end{pmatrix} = \\begin{pmatrix} \\mathbf{11} & \\mathbf{22} & 3 & 4 & 5 \\\\ \\mathbf{32} & \\mathbf{41} & 0 & 3 & 1 \\\\ 4 & 1 & 2 & 1 & 0 \\\\ 0 & 3 & 1 & 2 & 2 \\end{pmatrix}$$"} />
+                    </div>
+                    <span className="text-[11px] text-slate-500 font-sans block">
+                      {isKh ? '➡️ លទ្ធផលនៅតែជា 4×5 ដដែល — ល្អសម្រាប់រក្សាទំហំរូបភាពដើម។' : "➡️ Result stays 4×5 — useful when you need to preserve the original canvas size."}
+                    </span>
+                  </div>
+
+                  {/* Method B: Sub-matrix Extraction */}
+                  <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-3">
+                    <span className="text-xs font-bold text-cyan-400 font-mono flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5" />
+                      {isKh ? '២. Sub-matrix Extraction៖ កាត់យក A ត្រឹម 2×2' : '2. Sub-matrix Extraction: Slice A Down to 2×2'}
+                    </span>
+                    <p className={'text-[11px] text-slate-400 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
+                      {isKh
+                        ? 'មិនចាំបាច់ pad B ទេ — គ្រាន់តែជ្រើសរើសយកភាគ 2×2 ជ្រុងលើឆ្វេងនៃ A មកបូកផ្ទាល់ជាមួយ B ដើម ២×២។'
+                        : 'No padding needed — just slice out the 2×2 sub-region from the top-left of A and add it directly to the original 2×2 matrix B.'}
+                    </p>
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-[11px] overflow-x-auto">
+                      <MathRenderer content={"$$A_{[0:2,\\,0:2]} + B_{2\\times2} = \\begin{pmatrix} 1 & 2 \\\\ 2 & 1 \\end{pmatrix} + \\begin{pmatrix} 10 & 20 \\\\ 30 & 40 \\end{pmatrix} = \\begin{pmatrix} 11 & 22 \\\\ 32 & 41 \\end{pmatrix}$$"} />
+                    </div>
+                    <span className="text-[11px] text-slate-500 font-sans block">
+                      {isKh ? '➡️ លទ្ធផលតូចត្រឹម 2×2 — ល្អសម្រាប់ធ្វើប្រតិបត្តិការតែលើផ្នែកតូចមួយ (Patch/ROI) ដោយមិនប៉ះពាល់ផ្នែកផ្សេង។' : '➡️ Result is a compact 2×2 — useful when you only want to operate on one small patch (ROI) without touching the rest of the image.'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-amber-950/30 border border-amber-500/30 flex items-start gap-2.5">
+                  <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <p className={'text-[11px] text-amber-200 leading-relaxed ' + (isKh ? 'khmer-font' : '')}>
+                    {isKh
+                      ? 'កំណត់ចំណាំ៖ តម្លៃទាំង ៤ នៅជ្រុងលើឆ្វេង (11, 22, 32, 41) ដូចគ្នាបេះបិទក្នុងវិធីទាំងពីរ — ភាពខុសគ្នាគឺត្រង់ថាតើអ្នកចង់បានលទ្ធផលទំហំពេញ (4×5) ឬលទ្ធផលតូចតែផ្នែកដែលពាក់ព័ន្ធ (2×2)។'
+                      : 'Notice the four top-left values (11, 22, 32, 41) are identical either way — the only difference is whether you want a full-size result (4×5) or a compact result covering just the relevant region (2×2).'}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1721,6 +1787,10 @@ export const MatrixTab: React.FC<MatrixTabProps> = ({ language, onNavigateTab })
             </div>
           </div>
         </div>
+      )}
+
+      {onNavigateTab && (
+        <LearningPathFooter currentTab="matrix" language={language} onNavigateTab={onNavigateTab} />
       )}
     </div>
   );
